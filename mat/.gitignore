@@ -1,0 +1,6 @@
+jd-gui.cfg
+*.apk
+*.pyc
+tests/
+mat-output/
+*.egg-info/

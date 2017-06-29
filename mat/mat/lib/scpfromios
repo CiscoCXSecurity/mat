@@ -1,0 +1,10 @@
+#!/usr/bin/expect
+
+set file [lindex $argv 0];
+set path [lindex $argv 1];
+set timeout 10
+
+spawn scp -P 2222 -r root@127.0.0.1:$file $path
+expect "password:"
+send "alpine\r"
+interact

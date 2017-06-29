@@ -1,0 +1,8 @@
+#!/usr/bin/expect
+
+set cmd [lindex $argv 0];
+
+spawn ssh root@127.0.0.1 -p 2222 $cmd
+expect "password:"
+send "alpine\r"
+interact
