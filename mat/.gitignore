@@ -3,5 +3,6 @@ jd-gui.cfg
 !drozer-agent.apk
 *.pyc
 tests/
+build/
 mat-output/
 *.egg-info/
