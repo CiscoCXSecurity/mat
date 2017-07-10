@@ -1,5 +1,6 @@
 jd-gui.cfg
 *.apk
+!drozer-agent.apk
 *.pyc
 tests/
 mat-output/
