@@ -6,11 +6,11 @@ from sys import argv
 from os import getenv, path, makedirs, rename
 from shutil import copy
 
-version = '2.1.5'
+version = '3.0.0'
 file_path = path.realpath(__file__).rsplit('/', 1)[0]
 
 HOME              = getenv('HOME')
-CONFIG_FOLDER     = '{home}/.config/audits'.format(home=HOME)
+CONFIG_FOLDER     = '{home}/.mat'.format(home=HOME)
 LIB_FOLDER        = '{config}/lib'.format(config=CONFIG_FOLDER)
 LIB_SUBFOLDERS    = ['{lib}/dex2jar'.format(lib=LIB_FOLDER), '{lib}/dex2jar/lib'.format(lib=LIB_FOLDER), '{lib}/signing'.format(lib=LIB_FOLDER)]
 LIB_FILES         = [
@@ -51,7 +51,7 @@ DEBUG      = {debug}
 #]
 
 #IOS_PERMISSIONS = [
-#    NSPhotoLibraryUsage',
+#    'NSPhotoLibraryUsage',
 #]
 
 #ANDROID_ISSUES = {
@@ -85,8 +85,10 @@ def common(debug=False):
     if not path.exists(CONFIG_FOLDER):
         try:
             makedirs(CONFIG_FOLDER)
+            if not path.exists(CONFIG_FOLDER):
+                raise OSError()
         except OSError:
-            print '[-] No permission to create {config}.'.format(config=CONFIG_FOLDER)
+            print('[-] No permission to create {config}.'.format(config=CONFIG_FOLDER))
             exit(0)
 
     # check if lib folders exist and can be created
@@ -94,13 +96,18 @@ def common(debug=False):
         if not path.exists(folder):
             try:
                 makedirs(folder)
+                if not path.exists(folder):
+                    raise OSError()
             except OSError:
-                print '[-] No permission to create {lib}.'.format(lib=folder)
+                print('[-] No permission to create {lib}.'.format(lib=folder))
                 exit(0)
 
     # copy lib files to $HOME/.config/audits/lib/
     for file in LIB_FILES:
         copy('mat/lib/{file}'.format(file=file), "{lib}/{file}".format(lib=LIB_FOLDER, file=file))
+        if not path.exists("{lib}/{file}".format(lib=LIB_FOLDER, file=file)):
+            print('[-] Failed to copy file {file} to {lib}'.format(lib=LIB_FOLDER, file=file))
+            exit(0)
 
     # copy template to place
     if path.exists(SETTINGS_FILENAME):
@@ -109,16 +116,19 @@ def common(debug=False):
     # creating default settings
     with open(SETTINGS_FILENAME, 'w') as w:
         w.write(str(DEFAULT_SETTINGS).replace('{debug}', ("True" if debug else "False")))
-        print '[+] {lsettings} created.'.format(lsettings=SETTINGS_FILENAME)
+        if not path.exists(SETTINGS_FILENAME):
+            print('[-] Failed to create {file}'.format(file=SETTINGS_FILENAME))
+            exit(0)
+        print('[+] {lsettings} created.'.format(lsettings=SETTINGS_FILENAME))
 
 class PreInstall(install):
     def run(self):
-        common(False)
+        common(debug=False)
         install.run(self)
 
 class PreDevelop(develop):
     def run(self):
-        common(True)
+        common(debug=True)
         develop.run(self)
 
 setup(
@@ -126,7 +136,6 @@ setup(
     version=version,
     packages=find_packages(),
     include_package_data=True,
-#    data_files = [ ("mat/lib", ["mat/lib/iaa.zip", "mat/lib/scpios", "mat/lib/sshios", "mat/lib/tcprelay.py", "mat/lib/usbmux.py"]) ],
     entry_points={
         'console_scripts': [
             'mat = mat:main'
