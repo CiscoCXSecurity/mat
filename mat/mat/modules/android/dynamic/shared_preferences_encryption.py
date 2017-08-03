@@ -1,5 +1,5 @@
 from os import path, walk
-from utils.utils import Issue
+from mat.utils.utils import Issue
 
 class Issue(Issue):
 
@@ -14,10 +14,10 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['dynamic'])
 
     def run(self):
-        self.ANALYSIS.launch_app()
+        self.ANALYSIS.UTILS.launch_app()
 
         # pull data contents
-        self.ANALYSIS.ADB.pull_data_content(self.ANALYSIS.PACKAGE, self.ANALYSIS.LOCAL_DATA_CONTENT)
+        self.ANALYSIS.UTILS.pull_data_content(self.ANALYSIS.PACKAGE, self.ANALYSIS.LOCAL_DATA_CONTENT)
         shared_preferences = '{data}/{package}/shared_prefs'.format(data=self.ANALYSIS.LOCAL_DATA_CONTENT, package=self.ANALYSIS.PACKAGE)
 
         rfiles = []

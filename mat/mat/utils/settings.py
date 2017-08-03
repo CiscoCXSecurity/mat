@@ -1,8 +1,6 @@
-from os import popen, getenv
+from os import getenv
 
-rows, columns  = popen('stty size', 'r').read().split()
-rows           = int(rows)
-columns        = int(columns)
+LOCAL_SETTINGS = "{home}/.mat".format(home=getenv('HOME'))
 
 # files settings
 output         = 'mat-output'
@@ -33,7 +31,7 @@ expect         = None
 plutil         = None
 
 # android files shipped with the application
-LOCAL_LIB      = '{home}/.mat/lib'.format(home=getenv('HOME'))
+LOCAL_LIB      = '{local}/lib'.format(local=LOCAL_SETTINGS)
 dex2jar        = '{lib}/dex2jar/d2j-dex2jar.sh'.format(lib=LOCAL_LIB)
 apktool        = '{lib}/apktool'.format(lib=LOCAL_LIB)
 jdcli          = '{lib}/jd-cli'.format(lib=LOCAL_LIB)
@@ -66,9 +64,6 @@ apkfilename    = None
 
 # ios settings
 app            = None
-APPS_PATH_9    = '/var/containers/Bundle/Application/'
-APPS_PATH_8    = '/var/mobile/Containers/Bundle/Application'
-APPS_PATH_7    = '/var/mobile/Applications'
 
 # save the issues found:
 results        = []

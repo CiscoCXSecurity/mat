@@ -1,4 +1,4 @@
-from utils.utils import Issue
+from mat.utils.utils import Issue
 
 class Issue(Issue):
 
@@ -8,6 +8,9 @@ class Issue(Issue):
     ID          = 'insecure-ats'
     ISSUE_TITLE = 'Application Has Insecure Application Transport Security Settings'
     FINDINGS    = 'The Team found that although ATS was active, the use of `NSAllowsArbitraryLoads\' negates its effects:\n'
+
+    def dependencies(self):
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
 
     def run(self):
         if ('NSAppTransportSecurity' in self.ANALYSIS.APP_INFO and 'NSAllowsArbitraryLoads' in self.ANALYSIS.APP_INFO['NSAppTransportSecurity']

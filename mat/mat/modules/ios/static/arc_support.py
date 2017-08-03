@@ -1,4 +1,4 @@
-from utils.utils import Utils, Issue
+from mat.utils.utils import Utils, Issue
 
 class Issue(Issue):
 
@@ -11,18 +11,13 @@ class Issue(Issue):
 
     REGEX       = r'_objc_init|_objc_load|_objc_store|_objc_move|_objc_copy|_objc_retain|_objc_unretain|_objc_release|_objc_autorelease'
 
+    def dependencies(self):
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
+
     def run(self):
-        result = Utils.grep_command('-REn "{regex}" {bin} {src}'.format(regex=self.REGEX, bin=self.ANALYSIS.LOCAL_WORKING_BIN, src=self.ANALYSIS.LOCAL_CLASS_DUMP), self.ANALYSIS.LOCAL_WORKING)
-        if not result:
+        result = Utils.grep(regex=self.REGEX, source=self.ANALYSIS.LOCAL_CLASS_DUMP, working_path=self.ANALYSIS.LOCAL_WORKING_FOLDER)
+        strings_result = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-E "{regex}"'.format(regex=self.REGEX))
+
+        if not result and not strings_result:
             self.REPORT = True
 
-"""
-    'arc-support': {
-        'regex': '_objc_init|_objc_load|_objc_store|_objc_move|_objc_copy|_objc_retain|_objc_unretain|_objc_release|_objc_autorelease',
-        'ignore-case': False,
-        'reverse': True,
-        'title': 'Application does not use ARC APIs',
-        'issue-id': 'arc-support',
-        'include-findings': False
-    },
-"""

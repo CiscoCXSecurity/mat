@@ -1,4 +1,4 @@
-from utils.utils import Utils, Issue
+from mat.utils.utils import Utils, Issue
 
 class Issue(Issue):
 
@@ -11,28 +11,16 @@ class Issue(Issue):
 
     REGEX       = r'jailbreak|cydia'
 
+    def dependencies(self):
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
+
     def run(self):
-        result = Utils.grep_command('-REin "{regex}" {bin} {src}'.format(regex=self.REGEX, bin=self.ANALYSIS.LOCAL_WORKING_BIN, src=self.ANALYSIS.LOCAL_CLASS_DUMP), self.ANALYSIS.LOCAL_WORKING)
+        result = Utils.grep(regex=self.REGEX, source=self.ANALYSIS.LOCAL_CLASS_DUMP, working_path=self.ANALYSIS.LOCAL_WORKING_FOLDER)
+        result[self.ANALYSIS.LOCAL_WORKING_BIN] = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-E "{regex}"'.format(regex=self.REGEX))
         self.REPORT = True
 
         if result:
             self.ISSUE_TITLE = 'Application Performs Jailbreak Detection'
             self.FINDINGS    = 'The Team found that the application implemented jailbreak detection mechanisms:\n'
-            self.DETAILS     = Utils.grep_details(result)
+            self.DETAILS = Utils.grep_details(result, working_path=self.ANALYSIS.LOCAL_WORKING_FOLDER)
 
-"""
-    'root-detected': {
-        'title': 'Application Performs Jailbreak Detection [CHECK MANUALLY]',
-        'issue-id': 'root-detection',
-        'include-findings': True
-    },
-
-    'root-detection': {
-        'regex': 'jailbreak|cydia',
-        'ignore-case': True,
-        'reverse': True,
-        'title': 'Application Does Not Perform Jailbreak Detection',
-        'issue-id': 'root-detection',
-        'include-findings': False,
-    },
-"""

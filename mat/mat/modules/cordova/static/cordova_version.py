@@ -1,4 +1,4 @@
-from utils.utils import Issue
+from mat.utils.utils import Issue
 
 class Issue(Issue):
 
@@ -13,7 +13,17 @@ class Issue(Issue):
         return True
 
     def run(self):
-        if self.ANALYSIS.CORDOVA_VERSION and self.ANALYSIS.CORDOVA_VERSION < self.ANALYSIS.LATEST_VERSION[self.ANALYSIS.ASSESSMENT_TYPE]:
-            self.DETAILS = '<code>{version}</code>'.format(version=self.ANALYSIS.CORDOVA_VERSION_DETAILS)
+        CORDOVA_VERSION = CORDOVA_VERSION_DETAILS = None
+        if self.ANALYSIS.CORDOVA_FILE:
+            with open(self.CORDOVA_FILE, 'r') as f:
+                cordova = f.read()
+
+            for line in cordova.split('\n'):
+                if ('CORDOVA_JS_BUILD_LABEL' in line or 'PLATFORM_VERSION_BUILD_LABEL' in line) and '\'' in line:
+                    CORDOVA_VERSION = line.split('\'')[1].strip()
+                    CORDOVA_VERSION_DETAILS = line
+
+        if CORDOVA_VERSION and CORDOVA_VERSION < self.ANALYSIS.LATEST_VERSION[self.ANALYSIS.ASSESSMENT_TYPE]:
+            self.DETAILS = '<code>{version}</code>'.format(version=CORDOVA_VERSION_DETAILS)
             self.REPORT  = True
 

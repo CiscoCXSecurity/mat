@@ -3,7 +3,7 @@
 
 # system modules
 from json import loads
-from sys import argv, exit, path
+from sys import argv, exit, path, stdin
 from os import getenv, makedirs
 from os.path import exists
 import argparse
@@ -21,23 +21,18 @@ from analysis.ios import IOSAnalysis
 
 """
 TODO:
- - warp main on a try catch
- - check pull_data_content is working
  - change cordova version id on xdb to out-of-date-cordova
+ - check that the Cisco app results are the same as the old MAT results
 """
 
 """
 TODO LIST
-
-* Add proxy setup on android: https://github.com/jpkrause/AndroidProxySetter
-* Finish proxy over usb
 * Add interactive mode
 * Finish Cordova features check
+* Change drozer checks for manual checks (remove drozer dependency)
 """
 
-VERSION = '3.0.0'
-
-LOCAL_SETTINGS = "{home}/.mat".format(home=getenv('HOME'))
+VERSION = '3.1.0'
 
 BANNER = '''
 
@@ -53,7 +48,7 @@ BANNER = '''
   Copyright 2017 - Portcullis, https://www.portcullis-security.com
 
   Your local settings will be under {lsettings}/mat_settings.py.
-    '''.format(version=VERSION, lsettings=LOCAL_SETTINGS)
+    '''.format(version=VERSION, lsettings=settings.LOCAL_SETTINGS)
 
 def find_executables():
     # system installed packages
@@ -72,6 +67,7 @@ def find_executables():
     settings.emulator    = Utils.run('which emulator')[0].split('\n')[0]
     settings.sdkmanager  = Utils.run('which sdkmanager')[0].split('\n')[0]
     settings.avdmanager  = Utils.run('which avdmanager')[0].split('\n')[0]
+
     # ios expect shell
     settings.expect      = Utils.run('which expect')[0].split('\n')[0]
 
@@ -79,17 +75,17 @@ def find_executables():
     settings.plutil      = Utils.run('which plutil')[0].split('\n')[0]
 
 def merge_settings():
-    path.append(LOCAL_SETTINGS)
+    path.append(settings.LOCAL_SETTINGS)
     try:
         import mat_settings
 
         # emulator settings
-        settings.avd         = mat_settings.avd         if hasattr(mat_settings, 'avd')         else settings.avd
+        settings.avd     = mat_settings.avd    if hasattr(mat_settings, 'avd')    else settings.avd
 
         # boolean / test settings
-        settings.device      = mat_settings.device      if hasattr(mat_settings, 'device')      else settings.device
-        settings.SILENT      = mat_settings.SILENT      if hasattr(mat_settings, 'SILENT')      else settings.SILENT
-        settings.DEBUG       = mat_settings.DEBUG       if hasattr(mat_settings, 'DEBUG')       else settings.DEBUG
+        settings.device  = mat_settings.device if hasattr(mat_settings, 'device') else settings.device
+        settings.SILENT  = mat_settings.SILENT if hasattr(mat_settings, 'SILENT') else settings.SILENT
+        settings.DEBUG   = mat_settings.DEBUG  if hasattr(mat_settings, 'DEBUG')  else settings.DEBUG
 
     except ImportError:
         Log.e('Local settings not imported.')
@@ -112,6 +108,7 @@ def clargs():
     # specify ios app
     iosparser.add_argument('-a', '--app',              required=False, metavar='id',                                           help='Installed APP id to be tested')
     iosparser.add_argument('-i', '--ipa',              required=False, metavar='/path/to/file.ipa',                            help='IPA file to install and analyse')
+    iosparser.add_argument('-s', '--static-only',      required=False, default=False, action='store_true',                     help='Perform static analysis only')
 
     iosparser.add_argument('-I', '--install',          required=False, metavar='/path/to/file.ipa',                            help='IPA file to just install')
     iosparser.add_argument('-m', '--modify',           required=False, metavar=('binary', 'hex_find', 'hex_replace'), nargs=3, help='Finds and replaces the binary instructions on the provided binary')
@@ -170,6 +167,7 @@ def parse_arguments():
 
     # common args
     settings.listapps    = args.list_apps
+    settings.static      = args.static_only
 
     # ios args
     if settings.type == 'ios':
@@ -183,7 +181,6 @@ def parse_arguments():
 
     # android args
     if settings.type == 'android':
-        settings.static  = args.static_only
         settings.device  = args.device or settings.device
         settings.avd     = args.avd or settings.avd
         settings.apk     = args.apk
@@ -252,8 +249,8 @@ def run_ios():
         iosutils.list_apps()
 
     elif settings.app:
-        ia = IOSAnalysis(settings.app, iosutils)
-        ia.run_analysis()
+        iosanalysis = IOSAnalysis(utils=iosutils, app=settings.app)
+        settings.results = iosanalysis.run_analysis()
 
         if not settings.SILENT:
             Report.report_to_terminal()
@@ -261,7 +258,7 @@ def run_ios():
         if settings.results:
             if not exists(settings.output):
                 makedirs(settings.output)
-            Report.report_to_json(ia.APP_BIN)
+            Report.report_to_json(iosanalysis.APP_BIN)
 
     else:
         die('Error: No IPA or APP specified.')
@@ -269,21 +266,18 @@ def run_ios():
     iosutils.stop_tcp_relay()
 
 def run_android():
-        # check devices
-        adb = ADB(adb=settings.adb)
 
-        androidutils = AndroidUtils(adb=adb)
-        adb.start_server()
-        devices = adb.devices()
+        androidutils = AndroidUtils()
+        devices = androidutils.devices()
         if settings.runchecks:
             androidutils.check_dependencies('full', silent=False)
-            adb.stop_server()
+            androidutils.clean()
             die()
 
         if not settings.static and len(devices) == 0:
             die('Error: No devices connected.')
         settings.device = settings.device or (devices[0] if devices else None)
-        adb.set_device(settings.device)
+        androidutils.set_device(settings.device)
 
         REPORT = False
         # fixes problems with APK files in same folder
@@ -299,32 +293,32 @@ def run_android():
 
         # static only
         elif settings.static and settings.apk:
-            aa = AndroidAnalysis(androidutils, apk=settings.apk, adb=adb)
-            settings.results = aa.run_analysis('static')
+            androidanalysis = AndroidAnalysis(androidutils, apk=settings.apk)
+            settings.results = androidanalysis.run_analysis('static')
             REPORT = True
 
         else:
 
             if settings.static and settings.package:
-                aa = AndroidAnalysis(androidutils, package=settings.package, adb=adb)
-                settings.results = aa.run_analysis('static')
+                androidanalysis = AndroidAnalysis(androidutils, package=settings.package)
+                settings.results = androidanalysis.run_analysis('static')
                 REPORT = True
 
             elif settings.apk or settings.package:
 
-                if not adb.online(settings.device):
+                if not androidutils.online(settings.device):
                     die('Error: Device {device} not found online'.format(device=settings.device))
 
-                aa = AndroidAnalysis(androidutils, apk=settings.apk, package=settings.package, adb=adb)
-                settings.results = aa.run_analysis()
+                androidanalysis = AndroidAnalysis(androidutils, apk=settings.apk, package=settings.package)
+                settings.results = androidanalysis.run_analysis()
 
                 REPORT = True
-                adb.stop_server()
 
             else:
+                androidutils.clean()
                 die('Error: No APK or Package specified.')
 
-        #adb.clean() # done by AndroidAnalysis
+        androidutils.clean()
 
         if REPORT and not settings.SILENT:
             Report.report_to_terminal()
@@ -332,9 +326,11 @@ def run_android():
         if REPORT and settings.results:
             if not exists(settings.output):
                 makedirs(settings.output)
-            Report.report_to_json(aa.PACKAGE)
+            Report.report_to_json(androidanalysis.PACKAGE)
 
 def run():
+    import traceback
+
     if settings.jsonprint:
         with open(settings.jsonprint, 'r') as f:
             for i in loads(f.read())['issues']:
@@ -343,86 +339,53 @@ def run():
         exit(0)
 
     if settings.type == 'ios':
-        run_ios()
+        try:
+            run_ios()
+        except Exception as e:
+            Log.d(traceback.format_exc())
+            die('Error: {error}'.format(error=e))
 
     elif settings.type == 'android':
-        run_android()
+        try:
+            run_android()
+        except Exception as e:
+            Log.d(traceback.format_exc())
+            die('Error: {error}'.format(error=e))
+
 
 def main():
-    find_executables()
-    merge_settings()
-
     parse_arguments()
     run()
 
-def imported():
+def default():
     find_executables()
     merge_settings()
-    settings.VERBOSE = True
-    settings.DEBUG = True
 
-if __name__ == "__main__":
+default()
+if __name__ == '__main__':
     main()
-else: # imported
-    imported()
 
 """
 # TESTS
+import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/MyBanking.ipa');
+import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; mat.settings.apk = "/tmp/mat-tests/mybanking.apk"; mat.settings.device = "00cd7e67ec57c127"; androidutils = mat.AndroidUtils(); androida = mat.AndroidAnalysis(androidutils, apk=mat.settings.apk);
 
-import mat
-mat.settings.output = "/tmp/mat-tests/mat-output"
-iosutils = mat.IOSUtils()
-iosutils.start_tcp_relay()
-
-
+import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/MyBanking.ipa'); r = iosa.run_analysis()
+import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; mat.settings.apk = "/tmp/mat-tests/mybanking.apk"; mat.settings.device = "00cd7e67ec57c127"; androidutils = mat.AndroidUtils(); androida = mat.AndroidAnalysis(androidutils, apk=mat.settings.apk); r = androida.run_analysis()
 
 
+from modules.ios.static.arc_support import Issue; a = Issue(iosa); a.run()
+from modules.ios.dynamic.excessive_permissions import Issue; a = Issue(iosa); a.run()
 
-iosutils.stop_tcp_relay()
-
-
-import mat
-mat.settings.output = "/tmp/mat-tests/mat-output"
-mat.settings.apk = "/tmp/mat-tests/mybanking.apk"
-adb = mat.ADB(adb=mat.settings.adb)
-androidutils = mat.AndroidUtils(adb=adb)
-aa = mat.AndroidAnalysis(androidutils, apk=mat.settings.apk, adb=adb)
-aa.prepare_analysis('static', decompile=False)
-from android.static.ssl_pinning import Issue as SSLIssue
-a = SSLIssue(aa)
-a.run()
+from android.dynamic.drozer_pathtraversal import Issue; a = Issue(androidanalysis); a.dependencies()
 
 
-results = aa.run_static_analysis()
+mkdir /tmp/mat-tests; cp /work/misc/MyBanking/OLD-Versions/mybanking-1.0.4.apk /tmp/mat-tests/mybanking.apk
+mkdir /tmp/mat-tests; cp /work/dev/ios/MyBanking/MyBanking.ipa /tmp/mat-tests
 
-reload(mat)
+androidutils.clean()
+iosutils.clean()
 
-import mat
-mat.settings.output = "/tmp/mat-tests/mat-output"
-mat.settings.apk = "/tmp/mat-tests/mybanking.apk"
-mat.settings.device = "00cd7e67ec57c127"
-adb = mat.ADB(adb=mat.settings.adb, device=mat.settings.device)
-androidutils = mat.AndroidUtils(adb=adb)
-aa = mat.AndroidAnalysis(androidutils, apk=mat.settings.apk, adb=adb)
-aa.run_analysis()
-
-
-mkdir /tmp/mat-tests
-cp /work/misc/MyBanking/OLD-Versions/mybanking-1.0.4.apk /tmp/mat-tests/mybanking.apk
-
-
-import mat
-mat.settings.output = "/tmp/mat-tests/mat-output"
-mat.settings.apk = "/tmp/mat-tests/mybanking.apk"
-mat.settings.device = "00cd7e67ec57c127"
-adb = mat.ADB(adb=mat.settings.adb, device=mat.settings.device)
-androidutils = mat.AndroidUtils(adb=adb)
-aa = mat.AndroidAnalysis(androidutils, apk=mat.settings.apk, adb=adb)
-aa.prepare_analysis('dynamic', decompile=False)
-
-
-from android.dynamic.drozer_pathtraversal import Issue as DP
-a = DP(aa)
-a.dependencies()
+import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/MyBanking.ipa'); r = iosa.run_static_checks()
 
 """

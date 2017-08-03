@@ -1,4 +1,4 @@
-from utils.utils import Utils, Issue
+from mat.utils.utils import Utils, Issue
 
 IGNORE = ['www.w3', 'xmlpull.org', 'www.slf4j']
 
@@ -13,26 +13,18 @@ class Issue(Issue):
 
     REGEX       = r'http://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?'
 
+    def dependencies(self):
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
+
     def run(self):
-        urls = Utils.strings_grep_command(src=self.ANALYSIS.LOCAL_WORKING_BIN, command='-REn "{regex}"'.format(regex=self.REGEX))
+        urls = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-E "{regex}"'.format(regex=self.REGEX))
         result = ''
-        for finding in urls.split('\n'):
-            if any(ignore in finding for ignore in IGNORE):
+        for finding in urls:
+            if any(ignore in finding['code'] for ignore in IGNORE):
                 continue
-            result += finding + '\n'
+            result += '* {url}\n'.format(url=finding['code'])
 
         if result:
             self.REPORT  = True
             self.DETAILS = result
 
-"""
-    'unencrypted-download' : {
-        'title': 'Application Downloads Content Via Unencrypted Channel',
-        'issue-id': 'unencrypted-download',
-        'regex': 'http://',
-        'ignore-case': False,
-        'reverse': False,
-        'strings': True,
-        'include-findings': True
-    },
-"""

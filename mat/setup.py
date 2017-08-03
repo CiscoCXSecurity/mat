@@ -6,7 +6,7 @@ from sys import argv
 from os import getenv, path, makedirs, rename
 from shutil import copy
 
-version = '3.0.0'
+version = '3.1.0'
 file_path = path.realpath(__file__).rsplit('/', 1)[0]
 
 HOME              = getenv('HOME')
@@ -28,55 +28,23 @@ LIB_FILES         = [
     'class-dump', 'class-dump-macos', 'scpfromios', 'keychain_dump',
     'drozer-agent.apk', 'bb-bins.zip'
 ]
-SETTINGS_FILENAME = '{config}/mat_settings.py'.format(config=CONFIG_FOLDER)
 
+MODULES = [
+    'modules/ios/static', 'modules/ios/dynamic',
+    'modules/android/static', 'modules/android/dynamic',
+    'modules/cordova/static'
+]
+
+SETTINGS_FILENAME = '{config}/mat_settings.py'.format(config=CONFIG_FOLDER)
 DEFAULT_SETTINGS="""# Default Settings if no options are provided to MAT (all optional)
 
 #device    = 'emulator-1234'
 
-#silent    = False
+#SILENT    = False
 DEBUG      = {debug}
-
-#minsdk      = '21'
-#maxsdk      = '25'
-#targetsdk   = '25'
 
 # avd settings
 #avd     = 'Testing-AVD-Name'
-
-# example issues that can be added
-
-#ANDROID_PERMISSIONS = [
-#    'android.permission.GET_TASKS',
-#]
-
-#IOS_PERMISSIONS = [
-#    'NSPhotoLibraryUsage',
-#]
-
-#ANDROID_ISSUES = {
-#    'webviewredirect': {
-#        'title': 'Application WebView Component Permits Arbitrary URL Redirection',
-#        'issue-id': 'webview-redirect',
-#        'regex': [
-#            {'regex': r'import android\.webkit\.WebView'},
-#            {'regex': r'shouldOverrideUrlLoading\(', 'report-if-not-found': True}
-#        ],
-#        'type': 'static'
-#    },
-#}
-
-#IOS_ISSUES = {
-#    'unencrypted-download' : {
-#        'title': 'Application Downloads Content Via Unencrypted Channel',
-#        'issue-id': 'unencrypted-download',
-#        'regex': 'http://',
-#        'ignore-case': False,
-#        'reverse': False,
-#        'strings': True,
-#        'include-findings': True
-#    },
-#}
 """
 
 def common(debug=False):
@@ -90,6 +58,17 @@ def common(debug=False):
         except OSError:
             print('[-] No permission to create {config}.'.format(config=CONFIG_FOLDER))
             exit(0)
+
+    for folder in MODULES:
+        folder = '{root}/{folder}'.format(root=CONFIG_FOLDER, folder=folder)
+        if not path.exists(folder):
+            try:
+                makedirs(folder)
+                if not path.exists(folder):
+                    raise OSError()
+            except OSError:
+                print('[-] No permission to create {config}.'.format(config=folder))
+                exit(0)
 
     # check if lib folders exist and can be created
     for folder in LIB_SUBFOLDERS:

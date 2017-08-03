@@ -1,9 +1,13 @@
 #system modules
 from os import path
 
+# dynamic load modules
+from os import listdir
+from imp import load_source
+
 # local modules
-from utils.utils import Utils, Log
-from utils import settings
+from mat.utils.utils import Utils, Log
+from mat.utils import settings
 
 class CordovaAnalysis(object):
 
@@ -60,27 +64,46 @@ class CordovaAnalysis(object):
         for os in CordovaAnalysis.LATEST_VERSION:
             self.LATEST_VERSION[os] = html.split('-{os}-'.format(os=os))[1].rsplit('.', 1)[0]
 
+    def _run_custom_modules(self, module_type):
+        issues = []
+        modules = [m.replace('.py', '') for m in listdir('{local}/{type}'.format(local=settings.LOCAL_SETTINGS, type=module_type)) if not m.endswith('.pyc')]
+        for m in modules:
+            custom_module = load_source('check', '{local}/{type}/{check}.py'.format(local=settings.LOCAL_SETTINGS, type=module_type, check=m))
+            issue = custom_module.Issue(self)
+            if issue.dependencies():
+                issue.run()
+            if issue.REPORT:
+                issues += [issue]
+
+        return issues
+
+    def _run_custom_static_analysis(self):
+        module_type = 'modules/cordova/static'
+        return self._run_custom_modules(module_type)
+
     def run_analysis(self):
         Log.w('Starting Analysis.')
-        self.prepareAnalysis()
+        self.prepare_analysis()
 
         if not self.CONFIG_FILE and not self.CORDOVA_FILE:
             Log.w('No cordova files found.')
-            return False
+            return []
 
         issues = []
 
-        import modules.cordova.static
-        static_checks = [check for check in dir(modules.cordova.static) if not check.startswith('__') and 'import_submodules' not in check]
+        import mat.modules.cordova.static
+        static_checks = [m.replace('.py', '') for m in listdir(mat.modules.cordova.static.__path__[0]) if not m.endswith('.pyc')]
         for check in static_checks:
             Log.d('Running Static {check}'.format(check=check))
-            check_module = __import__('modules.cordova.static.{check}'.format(check=check), fromlist=['Issue'])
+            check_module = __import__('mat.modules.cordova.static.{check}'.format(check=check), fromlist=['Issue'])
 
             issue = check_module.Issue(self)
             if issue.dependencies():
                 issue.run()
             if issue.REPORT:
                 issues += [issue]
+
+        issues += self._run_custom_static_analysis()
 
         return issues
 

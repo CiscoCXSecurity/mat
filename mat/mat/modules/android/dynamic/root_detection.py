@@ -1,4 +1,4 @@
-from utils.utils import Utils, Issue
+from mat.utils.utils import Utils, Issue
 
 class Issue(Issue):
 
@@ -13,7 +13,7 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['static', 'dynamic'])
 
     def run(self):
-        self.ANALYSIS.launch_app()
+        self.ANALYSIS.UTILS.launch_app()
         if self.ANALYSIS.PACKAGE in self.ANALYSIS.UTILS.processes():
             self.REPORT = True
 

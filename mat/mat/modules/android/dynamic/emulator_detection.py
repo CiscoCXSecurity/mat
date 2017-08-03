@@ -1,5 +1,5 @@
 from time import sleep
-from utils.utils import Utils, Log, Issue
+from mat.utils.utils import Utils, Log, Issue
 
 class Issue(Issue):
 
@@ -17,7 +17,7 @@ class Issue(Issue):
         Log.w('Checking emulator detection (this may take a while)')
 
         # get devices
-        devices = self.ANALYSIS.ADB.devices()
+        devices = self.ANALYSIS.UTILS.devices()
 
         # start emulator
         sleep(2)
@@ -30,22 +30,22 @@ class Issue(Issue):
             sleep(180)
 
         # diff devices -> get emulator
-        emulator = list(set(self.ANALYSIS.ADB.devices()) - set(devices))
+        emulator = list(set(self.ANALYSIS.UTILS.devices()) - set(devices))
 
         if len(emulator) == 1:
             emulator = emulator[0]
             Log.w('Waiting for {emulator}'.format(emulator=emulator))
-            while not self.ANALYSIS.ADB.online(emulator):
+            while not self.ANALYSIS.UTILS.online(emulator):
                 sleep(5)
 
-            if not self.ANALYSIS.ADB.unlocked(emulator):
+            if not self.ANALYSIS.UTILS.unlocked(emulator):
                 Log.w('Please unlock the emulator')
-            while not self.ANALYSIS.ADB.unlocked(emulator):
+            while not self.ANALYSIS.UTILS.unlocked(emulator):
                 sleep(5)
 
             # install and run the apk in emulator
-            self.ANALYSIS.ADB.install_on(emulator, self.ANALYSIS.WORKING_APK_FILE)
-            self.ANALYSIS.ADB.start_app_on(emulator, self.ANALYSIS.PACKAGE)
+            self.ANALYSIS.UTILS.install_on(emulator, self.ANALYSIS.WORKING_APK_FILE)
+            self.ANALYSIS.UTILS.launch_app(device=emulator, package=self.ANALYSIS.PACKAGE)
 
             Log.w('Launching the app on the emulator')
             sleep(10)

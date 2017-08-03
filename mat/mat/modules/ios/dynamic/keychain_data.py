@@ -1,4 +1,4 @@
-from utils.utils import Issue
+from mat.utils.utils import Issue
 
 class Issue(Issue):
 
@@ -10,18 +10,18 @@ class Issue(Issue):
     FINDINGS    = 'The following data was found in the keychain:\n'
 
     def run(self):
-        entitlements = self.ANALYSIS.UTILS.get_entitlements(self.ANALYSIS.FULL_BIN_PATH)
+        entitlements = self.ANALYSIS.UTILS.get_entitlements(self.ANALYSIS.IOS_BIN_PATH)
 
         # keychain dump
         # keys.plist, cert.plist, inet.plist, genp.plist -> ID: agrp, DATA: data
         if 'keychain-access-groups' in entitlements:
 
-            self.ANALYSIS.UTILS.dump_keychain(self.ANALYSIS.IOS_WORKING)
+            self.ANALYSIS.UTILS.dump_keychain(self.ANALYSIS.IOS_WORKING_FOLDER)
 
-            keys = self.ANALYSIS.UTILS.get_plist('{working}/keys.plist'.format(working=self.ANALYSIS.IOS_WORKING))
-            keys += self.ANALYSIS.UTILS.get_plist('{working}/genp.plist'.format(working=self.ANALYSIS.IOS_WORKING))
-            keys += self.ANALYSIS.UTILS.get_plist('{working}/cert.plist'.format(working=self.ANALYSIS.IOS_WORKING))
-            keys += self.ANALYSIS.UTILS.get_plist('{working}/inet.plist'.format(working=self.ANALYSIS.IOS_WORKING))
+            keys = self.ANALYSIS.UTILS.get_plist('{working}/keys.plist'.format(working=self.ANALYSIS.IOS_WORKING_FOLDER))
+            keys += self.ANALYSIS.UTILS.get_plist('{working}/genp.plist'.format(working=self.ANALYSIS.IOS_WORKING_FOLDER))
+            keys += self.ANALYSIS.UTILS.get_plist('{working}/cert.plist'.format(working=self.ANALYSIS.IOS_WORKING_FOLDER))
+            keys += self.ANALYSIS.UTILS.get_plist('{working}/inet.plist'.format(working=self.ANALYSIS.IOS_WORKING_FOLDER))
 
             keychainids = entitlements['keychain-access-groups']
 

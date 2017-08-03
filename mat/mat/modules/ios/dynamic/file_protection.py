@@ -1,4 +1,4 @@
-from utils.utils import Utils, Issue
+from mat.utils.utils import Utils, Issue
 
 class Issue(Issue):
 
@@ -10,7 +10,7 @@ class Issue(Issue):
     FINDINGS    = 'The Team found the following files to have insecure protection flags:\n'
 
     def run(self):
-        files = self.ANALYSIS.UTILS.run_on_ios('find {app} {data} -type f'.format(app=self.ANALYSIS.FULL_APP_PATH, data=self.ANALYSIS.DATA_PATH))[0].split('\r\n')
+        files = self.ANALYSIS.UTILS.run_on_ios('find {app} {data} -type f'.format(app=self.ANALYSIS.APP['Path'], data=self.ANALYSIS.IOS_DATA_PATH))[0].split('\r\n')
         vfiles = []
         for f in files:
             if f and not Utils.ignored_path(f) and not Utils.ignored_extension(f):

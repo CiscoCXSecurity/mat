@@ -3,8 +3,10 @@ from subprocess import Popen, PIPE
 from os import path
 import traceback
 
+from time import sleep
+
 # local imports
-from utils import Utils, Log, Command, die
+from utils import Utils, Log, Command
 import settings
 
 ################################################################################
@@ -13,30 +15,51 @@ import settings
 
 class IOSUtils(object):
 
-    PREF_FILE         = '/private/var/preferences/SystemConfiguration/preferences.plist'
     KEYCHAIN_DUMP     = None
     DUMP_FILE_PROTECT = None
     DUMP_LOG          = None
+    DUMP_DECRYPT      = None
 
-    def run_on_ios(self, cmd='', shell=False, process=False, timeout=5):
+    def __init__(self):
+        self.CHECKS_PASSED = {}
+        self.launched      = False
+        self.start_tcp_relay()
+
+    def launch_app(self, app):
+        if not self.launched:
+            Log.w('Starting the application on the device')
+            self.launched = True
+            self.run_app(app)
+            sleep(5)
+
+    def clean(self):
+        self.stop_tcp_relay()
+
+    def run_on_ios(self, cmd='', shell=False, process=False, timeout=5, retry=2):
         Log.d('Running on iOS: {cmd}'.format(cmd=cmd))
 
         try:
-            cmd = '{ssh} \'{cmd}\''.format(ssh=settings.ssh_ios, cmd=cmd) if shell else [settings.ssh_ios, cmd]
-            Log.d('Full command: {cmd}'.format(cmd=cmd))
+            full_cmd = '{ssh} \'{cmd}\''.format(ssh=settings.ssh_ios, cmd=cmd) if shell else [settings.ssh_ios, cmd]
+            Log.d('Full command: {cmd}'.format(cmd=full_cmd))
 
             if process:
-                return Popen(cmd, stdout=PIPE, stderr=None, shell=shell)
+                return Popen(full_cmd, stdout=PIPE, stderr=None, shell=shell)
 
-            result = Command(cmd).run(shell, timeout)
+            result = Command(full_cmd).run(shell, timeout)
             if result:
                 result = (result[0].split('\r\n', 2)[2], result[1]) if 'password:' in result[0] else (result[0].split('\r\n', 1)[1], result[1])
+
+            if 'ssh_exchange_identification: Connection closed by remote host' in result[0] and retry > 0:
+                return self.run_on_ios(cmd, shell, process, timeout, retry-1)
 
             return result
         except Exception:
             Log.d(traceback.format_exc())
 
-        return None
+        if retry > 0:
+            return self.run_on_ios(cmd, shell, process, timeout, retry-1)
+
+        return ['', '']
 
     def run_app(self, app=None):
         return self.run_on_ios('open {app}'.format(app=app['CodeInfoIdentifier']))
@@ -62,10 +85,14 @@ class IOSUtils(object):
         else:
             Log.e('Error: No dumplog binary found - was prepare_analysis run?')
 
+    def apt_install(self, package):
+        return self.run_on_ios('apt-get -y install {package}'.format(package=package))
+
     def set_proxy(self, ip=None, port=None):
         Log.d("Adding proxy {ip}:{port}".format(ip=ip, port=port))
+        PREF_FILE = '/private/var/preferences/SystemConfiguration/preferences.plist'
 
-        prefs = self.get_plist(self.PREF_FILE)
+        prefs = self.get_plist(PREF_FILE)
 
         current = prefs['CurrentSet'].rsplit('/', 1)[1]
         currentServices = prefs['Sets'][current]['Network']['Global']['IPv4']['ServiceOrder']
@@ -125,125 +152,231 @@ class IOSUtils(object):
 
         Log.d("Writing preference file")
         with open('/tmp/preferences.plist', 'w') as f:
-            f.write(dict_to_plist(prefs))
-        self.push('/tmp/preferences.plist', '/private/var/preferences/SystemConfiguration')
-        self.plist_to_bin(self.PREF_FILE)
+            f.write(self.dict_to_plist(prefs))
+        self.push('/tmp/preferences.plist', PREF_FILE.rsplit('/', 1)[0])
+        self.plist_to_bin(PREF_FILE)
 
-        if self.check_dependencies('activator', install=True):
+        if self.check_dependencies(['proxy'], install=True):
             self.run_on_ios('activator send switch-off.com.a3tweaks.switch.wifi')
             self.run_on_ios('activator send switch-on.com.a3tweaks.switch.wifi')
             return True
 
         Log.e('Activator not found in the device. Please turn the WiFi off and on again manually')
 
-    def check_dependencies(self, dependency='full', silent=False, install=False):
-        Log.d('Checking dependencies: {dep}'.format(dep=dependency))
-        passed = True
+    def check_dependencies(self, dependencies=['full'], silent=False, install=False, force=False):
+        Log.d('Checking dependencies: {dep}'.format(dep=dependencies))
 
-        if 'full' in dependency or 'connection' in dependency or 'expect' in dependency:
-            if not settings.expect:
-                passed = False
-
-            if not silent: Log.w('Expect Shell       : {shell}'.format(shell=settings.expect))
-
-        if 'full' in dependency or 'connection' in dependency:
-            uname = self.run_on_ios('uname -m')
-            if 'Connection refused' in uname[0] or 'Connection closed' in uname[0]:
-                if not silent: Log.w('Connection Check : No Connection')
-                passed = False
-
-            elif not silent: Log.w('Connection Check : Connected')
-
-        if 'full' in dependency or 'device' in dependency:
-            uname = self.run_on_ios('uname -m')[0].lower()
-
-            if 'iphone' not in uname and 'ipad' not in uname and 'ipod' not in uname:
-                passed = False
-
-            if not silent: Log.w('Device Check       : {connected}'.format(connected=uname.strip()))
-
-        if 'full' in dependency or 'clutch' in dependency:
-            clutch = self.run_on_ios('which Clutch2')[0][:-2]
-            if not clutch:
-                if install:
-                    if not silent: Log.w('Trying to install missing tools')
-                    self.run_on_ios('apt-get -y install com.iphonecake.clutch2')
-                    if not self.check_dependencies('clutch', silent, False):
-                        passed = False
-                else:
-                    passed = False
-
-            if not silent: Log.w('Clutch             : {path}'.format(path=clutch.strip()))
-
-        if 'full' in dependency or 'ipainstaller' in dependency:
-            ipainstaller = self.run_on_ios('which ipainstaller')[0][:-2]
-            if not ipainstaller:
-                if install:
-                    if not silent: Log.w('Trying to install missing tools')
-                    self.run_on_ios('apt-get -y install com.slugrail.ipainstaller')
-                    if not self.check_dependencies('ipainstaller', silent, False):
-                        passed = False
-                else:
-                    passed = False
-
-            if not silent: Log.w('IPA Installer      : {path}'.format(path=ipainstaller.strip()))
-
-        if 'full' in dependency or 'activator' in dependency:
-            activator = self.run_on_ios('which activator')[0][:-2]
-            if not activator:
-                if install:
-                    if not silent: Log.w('Trying to install missing tools')
-                    self.run_on_ios('apt-get install libactivator')
-                    if not self.check_dependencies('activator', silent, False):
-                        passed = False
-                else:
-                    passed = False
-
-            if not silent: Log.w('Activator          : {path}'.format(path=activator.strip()))
-
-        if 'full' in dependency or 'plutil' in dependency:
-            if not settings.plutil:
-                passed = False
-
-            if not silent: Log.w('Plutil             : {path}'.format(path=settings.plutil.strip()))
-
-        return passed
-
-    def install(self, ipa=None):
-        if not ipa:
+        ########################################################################
+        # CHECK PRE REQUESITES
+        ########################################################################
+        if not isinstance(dependencies, list):
+            Log.e('Error: Dependencies must be a list')
             return False
 
-        if not self.check_dependencies('ipainstaller', install=True):
-            die('Error: No IPA Installer installed on the device')
+        valid_dependencies   = ['full', 'connection', 'static', 'install', 'proxy']
+        invalid_dependencies = list(set(dependencies)-set(valid_dependencies))
+        if invalid_dependencies:
+            Log.e('Error: The following dependencies cannot be checked: {deps}'.format(deps=', '.join(invalid_dependencies)))
+            return False
+
+        ########################################################################
+        # CHECK SAVED DEPENDENCIES
+        ########################################################################
+        if all([d in self.CHECKS_PASSED for d in dependencies]) and not force: # if all dependencies have been checked before
+            return all([self.CHECKS_PASSED[d] for d in self.CHECKS_PASSED if d in dependencies])
+
+        if 'full' in dependencies:
+            self.CHECKS_PASSED['full'] = True
+
+        ########################################################################
+        # CONNECTION DEPENDENCIES
+        ########################################################################
+
+        if 'full' in dependencies or 'connection' in dependencies:
+            self.CHECKS_PASSED['connection'] = True
+
+            connection_dependencies = ['expect']
+            for d in connection_dependencies:
+                if not path.exists(getattr(settings, d)):
+                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['connection'] = False
+                if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
+
+            uname = self.run_on_ios('uname -m')[0].lower()
+            if 'Connection refused' in uname or 'Connection closed' in uname:
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['connection'] = False
+
+            if 'iphone' not in uname and 'ipad' not in uname and 'ipod' not in uname:
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['connection'] = False
+            if not silent: Log.w('device check: {connected}'.format(connected=uname.strip()))
+
+            required_packages  = ['apt7', 'coreutils', 'com.conradkramer.open']
+            installed_packages = self.installed_packages()
+            not_installed      = set(required_packages) - set(installed_packages)
+            if not_installed:
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['connection'] = False
+            if not silent: Log.w('packages installed: {packages}'.format(packages=', '.join(list(set(required_packages) - not_installed))))
+            if not silent: Log.w('packages missing: {packages}'.format(packages=', '.join(list(not_installed))))
+
+        ########################################################################
+        # STATIC DEPENDENCIES
+        ########################################################################
+
+        if 'full' in dependencies or 'static' in dependencies:
+            self.CHECKS_PASSED['static'] = True
+
+            if 'connection' in self.CHECKS_PASSED and not self.CHECKS_PASSED['connection'] and 'Darwin' not in Utils.run('uname')[0]:
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['static'] = False
+
+            if 'Darwin' not in Utils.run('uname')[0]:
+                if install and not self.run_on_ios('which Clutch2')[0][:-2]:
+                    if not silent: Log.w('Trying to install missing tools')
+                    self.apt_install('com.iphonecake.clutch2')
+
+                clutch = self.run_on_ios('which Clutch2')[0][:-2]
+                if not clutch:
+                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['static'] = False
+                if not silent: Log.w('iOS clutch2: {path}'.format(path=clutch.strip()))
+
+                static_dependencies = ['plutil']
+                for d in static_dependencies:
+                    if not path.exists(getattr(settings, d)):
+                        self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['static'] = False
+                    if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
+
+        ########################################################################
+        # INSTALL DEPENDENCIES
+        ########################################################################
+
+        if 'full' in dependencies or 'install' in dependencies:
+            self.CHECKS_PASSED['install'] = True
+
+            if install and not self.run_on_ios('which ipainstaller')[0][:-2]:
+                if not silent: Log.w('Trying to install missing tools')
+                self.apt_install('com.slugrail.ipainstaller')
+
+            ipainstaller = self.run_on_ios('which ipainstaller')[0][:-2]
+            if not ipainstaller:
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['install'] = False
+
+            if not silent: Log.w('iOS ipainstaller: {path}'.format(path=ipainstaller.strip()))
+
+        ########################################################################
+        # PROXY DEPENDENCIES - NOT PART OF FULL CHECK
+        ########################################################################
+
+        if 'proxy' in dependencies:
+            self.CHECKS_PASSED['proxy'] = True
+
+            if install and not self.run_on_ios('which activator')[0][:-2]:
+                if not silent: Log.w('Trying to install missing tools')
+                self.apt_install('libactivator')
+
+            activator = self.run_on_ios('which activator')[0][:-2]
+            if not ipainstaller:
+                self.CHECKS_PASSED['proxy'] = False
+
+            if not silent: Log.w('iOS activator: {path}'.format(path=ipainstaller.strip()))
+
+        return all([self.CHECKS_PASSED[d] for d in self.CHECKS_PASSED if d in dependencies])
+
+    def installed_packages(self):
+        return [line.split(' ')[2] for line in self.run_on_ios('dpkg -l')[0].split('\n') if 'iphoneos-arm' in line]
+
+    def install(self, ipa):
+        if not self.check_dependencies(['connection', 'install'], install=True):
+            Log.e('Error: No IPA Installer installed on the device')
+            return False
 
         if not path.exists(ipa) or not path.isfile(ipa):
-            die('Error: Invalid IPA file')
+            Log.e('Error: Invalid IPA file')
+            return False
 
         self.push(ipa, '/tmp')
         settings.ipainstaller = self.run_on_ios('which ipainstaller')[0][:-2]
 
         name = ipa.rsplit('/', 1)[1] if '/' in ipa else ipa
         result = self.run_on_ios('{ipai} -f -d /tmp/{ipa}'.format(ipai=settings.ipainstaller, ipa=name))[0]
+
         if 'Failed' in result or 'Invalid' in result:
-            die('Error: Failed to install the IPA:{result}'.format(result=result.split('\r\n')[-2:-1][0]))
+            Log.e('Error: Failed to install the IPA:{result}'.format(result=result.split('\r\n')[-2:-1][0]))
+            return False
 
         if 'successfully' in result.lower():
             self.update_apps_list(False)
 
-            Utils.run('{unzip} -o {ipa} -d /tmp/ipa'.format(unzip=settings.unzip, ipa=ipa))
+        apps = self.list_apps(silent=True)
+        app_path, app_info = self.unzip_to(ipa=ipa, dest='/tmp/ipa')
+        app  = [a for a in apps if app_info['CFBundleName'].lower() in apps[a]['Path'].lower()]
 
-            from os import listdir
-            app = listdir('/tmp/ipa/Payload/').pop()
+        return apps[app[0]] if app else None
 
-            self.plist_to_xml('/tmp/ipa/Payload/{app}/Info.plist'.format(app=app), False)
-            with open('/tmp/ipa/Payload/{app}/Info.plist'.format(app=app), 'r') as f:
-                plist = f.read()
+    def unzip_to(self, ipa, dest):
+        Utils.run('{unzip} -o {ipa} -d {dest}'.format(unzip=settings.unzip, ipa=ipa, dest=dest))
+        from os import listdir
+        app = listdir('{dest}/Payload/'.format(dest=dest)).pop()
 
-            Utils.run('rm -rf /tmp/ipa/')
+        self.plist_to_xml('{dest}/Payload/{app}/Info.plist'.format(dest=dest, app=app), ios=False)
+        with open('{dest}/Payload/{app}/Info.plist'.format(dest=dest, app=app), 'r') as f:
+            plist = f.read()
 
-            return plist_to_dict(plist)['CFBundleIdentifier']
+        return '{dest}/Payload/{app}'.format(dest=dest, app=app), self.plist_to_dict(plist)
 
-        return False
+    def app_executable(self, app, app_info):
+        if not app or not app_info: return None
+        IOS_APP_BINARY        = app_info['CFBundleExecutable'].replace(' ', '\ ')
+        IOS_APP_PATH          = app['Path'].replace(' ', '\ ')
+        return '{apppath}/{appbin}'.format(apppath=IOS_APP_PATH, appbin=IOS_APP_BINARY)
+
+    def pull_ipa(self, app, app_info, dest):
+        Log.w('Pulling IPA')
+
+        if not self.check_dependencies(['static', 'connection']):
+            Log.e('Error: Dependencies not met - cannot pull the app')
+            return False, False
+
+        IOS_WORKING_BIN = IOS_IPA = None
+
+        settings.ipainstaller = self.run_on_ios('which ipainstaller')[0][:-2]
+        settings.clutch       = self.run_on_ios('which Clutch2')[0][:-2]
+
+        # this needs to be here - do not use app_executable
+        IOS_APP_BINARY        = app_info['CFBundleExecutable'].replace(' ', '\ ')
+        IOS_APP_PATH          = app['Path'].replace(' ', '\ ')
+        IOS_BINARY_PATH       = '{apppath}/{appbin}'.format(apppath=IOS_APP_PATH, appbin=IOS_APP_BINARY)
+
+        # check if the app is encrypted and decrypt it
+        if 'cryptid 1' in self.run_on_ios('otool -l "{binary}" | grep ENCRYPTION -B1 -A4'.format(binary=IOS_BINARY_PATH))[0]:
+
+            if self.DUMP_DECRYPT:
+                self.run_on_ios('su mobile -c "cd {working}; DYLD_INSERT_LIBRARIES={dumpdecrypt} {binary}"'.format(working=IOSAnalysis.IOS_WORKING_FOLDER, dumpdecrypt=self.DUMP_DECRYPT, binary=IOS_BINARY_PATH))
+
+                # check if .decrypted file was created
+                IOS_WORKING_BIN = '{working}/{binary}.decrypted'.format(working=IOSAnalysis.IOS_WORKING_FOLDER, binary=IOS_APP_BINARY)
+                if not self.file_exists(self.IOS_WORKING_BIN):
+                    Log.e("Error: Unable to decrypt app. Working with encrypted binary.")
+                    self.IOS_WORKING_BIN = self.IOS_BINARY_PATH
+
+            # Decrypt and Get the IPA file:
+            Log.w('Decrypting the application to IPA. (this can take up to 30 secs)')
+            result = self.run_on_ios('{clutch} -n -d {app}'.format(app=app['CodeInfoIdentifier'], clutch=settings.clutch), timeout=30)[0]
+            if 'DONE:' in result:
+                decryptedipa = result.split('DONE: ')[1].split('.ipa')[0]
+                IOS_IPA = '{working}/{binary}.ipa'.format(working=IOSAnalysis.IOS_WORKING_FOLDER, binary=IOS_APP_BINARY)
+                self.run_on_ios('mv "{ipa}.ipa" "{newipa}"'.format(ipa=decryptedipa, newipa=IOS_IPA))
+
+        if not IOS_IPA:
+            Log.d('Application already decrypted')
+            IOS_IPA= '{working}/{binary}.ipa'.format(working=IOSAnalysis.IOS_WORKING_FOLDER, binary=IOS_APP_BINARY)
+            self.run_on_ios('{installer} -b {app} -o "{ipa}"'.format(installer=settings.ipainstaller, app=app['CodeInfoIdentifier'], ipa=IOS_IPA))
+
+        # get produced files
+        Log.d('Getting binaries from device')
+        LOCAL_WORKING_BIN = '{dest}/{binary}'.format(dest=dest, binary=IOS_WORKING_BIN.rsplit('/', 1)[-1])
+        LOCAL_IPA          = '{dest}/{binary}'.format(dest=dest, binary=IOS_IPA.rsplit('/', 1)[-1])
+        if IOS_WORKING_BIN: self.pull(IOS_WORKING_BIN, LOCAL_WORKING_BIN)
+        if IOS_IPA: self.pull(IOS_IPA, LOCAL_IPA)
+
+        return LOCAL_WORKING_BIN, LOCAL_IPA
 
     def plist_to_xml(self, file=None, ios=True):
         if not file:
@@ -252,7 +385,7 @@ class IOSUtils(object):
         if ios:
             self.run_on_ios('plutil -convert xml1 {file}'.format(file=file))
         else:
-            Utils.run('plutil -convert xml1 {file}'.format(file=file))
+            Utils.run('{plutil} -convert xml1 {file}'.format(plutil=settings.plutil, file=file))
 
     def plist_to_bin(self, file=None, ios=True):
         if not file:
@@ -261,8 +394,7 @@ class IOSUtils(object):
         if ios:
             self.run_on_ios('plutil -convert binary1 {file}'.format(file=file))
         else:
-            Utils.run('plutil -convert binary1 {file}'.format(file=file))
-
+            Utils.run('{plutil} -convert binary1 {file}'.format(plutil=settings.plutil, file=file))
 
     def delete(self, file=None):
         if not file:
@@ -275,15 +407,12 @@ class IOSUtils(object):
         if not file or not path: return False
         cmd = '{scp} {file} {path}/{end}'.format(scp=settings.scp_to_ios, file=file, path=path, end=file.split('/')[-1])
         results = Utils.run(cmd, True)
-
-        Log.d(results[1])
         return '100%' in results[0]
 
-    def read_file(self, file=None):
-        if not file:
-            return ''
-
-        return self.run_on_ios('cat {file}'.format(file=file))[0]
+    def read_file(self, file, ios=True):
+        if ios:
+            return self.run_on_ios('cat {file}'.format(file=file))[0]
+        return Utils.run('cat {file}'.format(file=file))[0]
 
     def update_apps_list(self, silent=False):
         if not silent: Log.w('Updating apps list on iOS: may take up to 30 seconds')
@@ -291,9 +420,9 @@ class IOSUtils(object):
 
     def list_apps(self, silent=False):
         PATHS = [
-            '/var/mobile/Library/Caches/com.apple.mobile.installation.plist',
-            '/var/mobile/Library/MobileInstallation/LastLaunchServicesMap.plist',
-            '/private/var/installd/Library/MobileInstallation/LastLaunchServicesMap.plist'
+            '/var/mobile/Library/Caches/com.apple.mobile.installation.plist', # IOS7
+            '/var/mobile/Library/MobileInstallation/LastLaunchServicesMap.plist', # IOS8
+            '/private/var/installd/Library/MobileInstallation/LastLaunchServicesMap.plist' # IOS9
         ]
 
         for apps_file in PATHS:
@@ -305,28 +434,81 @@ class IOSUtils(object):
                     self.plist_to_xml(apps_file)
                     text = self.read_file(apps_file)
 
-                apps = plist_to_dict(text)['User']
+                apps = self.plist_to_dict(text)['User']
                 if not silent:
                    for app in apps:
                         print('{app} :\n    APP: {bin}\n    DATA: {data}'.format(app=app, bin=apps[app]['Path'], data=apps[app]['Container']))
                 return apps
 
-        die('Error: Device OS not supported')
+        Log.e('Error: Device OS not supported - backporting to old methods')
+        return self._list_apps_installer(silent)
 
-    """
-    [Deprecated]
-    def list_apps_old(self, silent=False):
-        settings.APPS_PATH = settings.APPS_PATH_7 if self.get_ios_version() < 8.0 else (settings.APPS_PATH_8 if self.get_ios_version() < 9.0 else settings.APPS_PATH_9)
-        apps = self.run_on_ios('ls -d {appspath}/*/*.app | cut -d"/" -f7-'.format(appspath=settings.APPS_PATH))[0]
-        if 'No such file or directory' not in apps:
-            settings.iosapps = apps.split('\r\n')[:-1]
+    def _list_apps_installer(self, silent=False):
+        if self.check_dependencies(['install'], silent=True):
+            settings.ipainstaller = self.run_on_ios('which ipainstaller')[0][:-2]
+            apps_packages = self.run_on_ios('{ipainstaller} -l'.format(ipainstaller=settings.ipainstaller))[0][:-2].split('\r\n')
+
+            FOUND_APPS = uuid = {}
+            for app in apps_packages:
+                app_details = self.run_on_ios('{ipainstaller} -i {package}'.format(ipainstaller=settings.ipainstaller, package=app))[0][:-2].split('\r\n')
+                DETAILS = {}
+                for line in app_details:
+                    key, value = line.split(': ', 1)
+                    key  = key.replace('Application', 'Path').replace('Data', 'Container').replace('Identifier', 'CodeInfoIdentifier')
+                    if 'Bundle' in key:
+                        uuid = value.rsplit('/', 1)[-1]
+                    DETAILS[key] = value
+                if uuid:
+                    FOUND_APPS[uuid] = DETAILS
 
             if not silent:
-                for i, app in enumerate(settings.iosapps):
-                    if app:
-                        uuid, name,  = app.split('/')
-                        print('{i}) {name}\n    UUID: {uuid}'.format(i=i, name=name, uuid=uuid))
-    """
+                for app in FOUND_APPS:
+                    print('{app} :\n    APP: {bin}\n    DATA: {data}'.format(app=app, bin=FOUND_APPS[app]['Path'], data=FOUND_APPS[app]['Container']))
+
+            return FOUND_APPS
+
+        return self._list_apps_old(silent)
+
+    def _list_apps_old(self, silent=False):
+        FOUND_APPS = {}
+
+        APP_PATHS  = {
+            7:  '/var/mobile/Applications',
+            8:  '/var/mobile/Containers/Bundle/Application',
+            9:  '/var/containers/Bundle/Application',
+            10: '/var/containers/Bundle/Application'
+        }
+
+        DATA_PATHS = {
+            7:  '/var/mobile/Applications',
+            8:  '/private/var/mobile/Containers/Data/Application',
+            9:  '/private/var/mobile/Containers/Data/Application',
+            10: '/private/var/mobile/Containers/Data/Application'
+        }
+
+        APPS_PATH = APP_PATHS[int(self.get_ios_version())]
+        DATA_PATH = DATA_PATHS[int(self.get_ios_version())]
+
+        apps  = self.run_on_ios('ls -d {appspath}/*/*.app'.format(appspath=APPS_PATH))[0]
+        datas = self.run_on_ios('ls -d {datapath}/*/Library/Caches/Snapshots/*'.format(datapath=DATA_PATH))[0]
+
+        if 'No such file or directory' not in apps:
+            iosapps = apps.split('\r\n')[:-1]
+            iosdata = datas.split('\r\n')[:-1]
+
+            if not silent:
+                for app in iosapps:
+                    uuid, name  = app.replace(APPS_PATH, '')[1:].split('/')
+                    data        = [d for d in iosdata if name.split('.', 1)[0].lower() in d.lower()]
+
+                    FOUND_APPS[uuid] = {
+                        'Path': '{paths}/{uuid}/{name}'.format(paths=APPS_PATH, uuid=uuid, name=name),
+                        'Container': data[0].split('/Library')[0] if data else None,
+                        'CodeInfoIdentifier': data[0].rsplit('/', 1)[-1] if data else None
+                    }
+                    print('{app} :\n    APP: {bin}\n    DATA: {data}'.format(app=uuid, bin=FOUND_APPS[uuid]['Path'], data=FOUND_APPS[uuid]['Container']))
+
+        return FOUND_APPS
 
     def get_ios_version(self):
         cmd = 'grep -A 1 "ProductVersion" /System/Library/CoreServices/SystemVersion.plist | tail -n 1 | cut -d">" -f2 | cut -d"<" -f1';
@@ -345,24 +527,24 @@ class IOSUtils(object):
     def file_exists(self, file=None):
         return 'cannot access' not in self.run_on_ios('ls {file}'.format(file=file))[0]
 
-    def get_plist(self, file=None):
+    def get_plist(self, file=None, ios=True):
         try:
-            self.plist_to_xml(file)
-            return plist_to_dict(self.read_file(file))
+            self.plist_to_xml(file, ios=ios)
+            return self.plist_to_dict(self.read_file(file, ios=ios))
         except Exception:
             Log.e('Error getting the plist {file}'.format(file=file))
             Log.d(traceback.format_exc())
             return {}
 
-    def get_info(self, app=None):
-        return self.get_plist('{app}/Info.plist'.format(app=app['Path'].replace(' ', '\ ')))
+    def get_info(self, path=None, ios=True):
+        return self.get_plist('{app}/Info.plist'.format(app=path.replace(' ', '\ ')), ios=ios)
 
     def get_entitlements(self, binary=None):
         text = self.run_on_ios('ldid -e {app}'.format(app=binary))[0]
         if text.count('</plist>') > 1:
             stext = text.split('\r\n')
             text = '\r\n'.join([i for i in stext[:len(stext)/2]])
-        return plist_to_dict(text)
+        return self.plist_to_dict(text)
 
     def pull(self, file=None, path=None):
         if not file or not path: return False
@@ -391,13 +573,12 @@ class IOSUtils(object):
 
         return result
 
-def dict_to_plist(text):
-    import plistlib
-    return plistlib.writePlistToString(text)
+    def dict_to_plist(self, text):
+        import plistlib
+        return plistlib.writePlistToString(text)
 
-def plist_to_dict(text=None):
-    if not text:
-        return {}
-
-    import plistlib
-    return plistlib.readPlistFromString(text)
+    def plist_to_dict(self, text=None):
+        if not text:
+            return {}
+        import plistlib
+        return plistlib.readPlistFromString(text)

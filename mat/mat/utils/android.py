@@ -17,11 +17,91 @@ import settings
 class AndroidUtils(object):
 
     INSTALL_PATH = '/system/xbin'
-    CREATED_AVD  = False
 
-    def __init__(self, adb):
-        self.ADB = adb
+    def __init__(self):
+        self.ADB           = ADB(adb=settings.adb)
+        self.DROZER        = None
         self.CHECKS_PASSED = {}
+        self.launched      = {}
+        self.CREATED_AVD   = False
+
+        self.ADB.start_server()
+
+    ############################################################################
+    #    ADB WRAPPER FUNCTIONS
+    ############################################################################
+
+    def launch_app(self, package, device=None):
+        if device not in self.launched or not self.launched[device]:
+            self.launched[device] = True
+            self.ADB.start_app_on(device, package) # launch the app
+            sleep(5)
+
+    def pull(self, file, dest):
+        self.ADB.pull(file, dest)
+
+    def push(self, file, dest):
+        self.ADB.push(file, dest)
+
+    def get_apk(self, package):
+        return self.ADB.apk(package)[:-2]
+
+    def processes(self, device=None, root=True):
+        device = device or settings.device
+        return self.ADB.processes(device, root)
+
+    def has(self, package, device):
+        return package in self.ADB.packages_on(device)
+
+    def list_apps(self, silent=False):
+        packages = self.ADB.packages()
+        if silent: return packages
+
+        for package in packages:
+            print package
+
+    def devices(self):
+        return self.ADB.devices()
+
+    def install_on(self, device, apk):
+        return self.ADB.install_on(device, apk)
+
+    def install(self, apk=None):
+        return self.ADB.install(apk)
+
+    def unlocked(self, device):
+        return self.ADB.unlocked(device)
+
+    def online(self, device):
+        return self.ADB.online(device)
+
+    def pull_data_content(self, package, dest):
+        return self.ADB.pull_data_content(package, dest)
+
+    def set_device(self, device):
+        return self.ADB.set_device(device)
+
+    def device(self):
+        return self.ADB.device()
+
+    def avds(self):
+        #return [avd.split(":", 1)[-1].strip() for avd in Utils.run('{avdmanager} list avd | {grep} Name'.format(avdmanager=settings.avdmanager, grep=settings.grep))[0].split('\n')]
+        return Utils.run('{avdmanager} list avd'.format(avdmanager=settings.avdmanager))[0]
+
+    ############################################################################
+    #    DROZER FUNCTIONS
+    ############################################################################
+
+    def get_drozer(self):
+        if self.DROZER:
+            return self.DROZER
+
+        self.DROZER = Drozer(self.ADB)
+        return self.DROZER
+
+    ############################################################################
+    #    UTILS FUNCTIONS
+    ############################################################################
 
     def create_avd(self, name='MAT-Testing', api='26'):
         Log.w('Creating AVD {name} with android api {api}'.format(name=name, api=api))
@@ -36,7 +116,7 @@ class AndroidUtils(object):
             Log.e('Could not create AVD {name}'.format(name=name))
             return False
 
-        avdlist = Utils.run('{avdmanager} list avd'.format(avdmanager=settings.avdmanager))[0]
+        avdlist = self.avds()
         avdpath = False
         for line in avdlist.split('\n'):
             if avdpath and 'Path' in line:
@@ -80,23 +160,10 @@ class AndroidUtils(object):
         return smali_method
 
     def clean(self):
+        if self.DROZER:
+            self.DROZER.stop()
         self.ADB.clean()
-
-    def pull(self, file, dest):
-        self.ADB.pull(file, dest)
-
-    def push(self, file, dest):
-        self.ADB.push(file, dest)
-
-    def get_apk(self, package):
-        return self.ADB.apk(package)[:-2]
-
-    def processes(self, device=None, root=True):
-        device = device or settings.device
-        return self.ADB.processes(device, root)
-
-    def has(self, package, device):
-        return package in self.ADB.packages_on(device)
+        self.ADB.stop_server()
 
     def install_busy_box(self, dest="/system/xbin"):
         Log.w('Installing Busy Box On: {path}'.format(path=dest))
@@ -186,13 +253,6 @@ class AndroidUtils(object):
             Log.d('Remounting /system as ro')
             self.ADB._run_on_device('shell su -c mount -o remount,ro /system')
 
-    def list_apps(self, silent=False):
-        packages = self.ADB.packages()
-        if silent: return packages
-
-        for package in packages:
-            print package
-
     def compile(self, appPath):
         Log.d('Compiling Android Application: {path}'.format(path=appPath))
 
@@ -217,98 +277,111 @@ class AndroidUtils(object):
         else:
             Log.e('Compiling Android Application Failed')
 
-    def check_dependencies(self, dependency='full', silent=True, install=False):
+    def check_dependencies(self, dependencies=['full'], silent=True, install=False, force=False):
+        """
+        top_level_dependencies     = ['full', 'static', 'dynamic', 'signing', 'drozer', 'avd']
+        binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'apktool', 'jdcli', 'dex2jar', 'signjar', 'cert', 'pk8']
+        """
 
-        Log.d('Checking dependencies: {dep}'.format(dep=dependency))
-        passed, lpassed = True, False
+        Log.d('Checking dependencies: {dep}'.format(dep=dependencies))
 
-        if all([d in self.CHECKS_PASSED for d in dependency]):
-            if isinstance(dependency, list):
-                for d in dependency:
-                    passed = passed and self.CHECKS_PASSED[d]
-                return passed
-            else:
-                return self.CHECKS_PASSED[dependency]
+        ########################################################################
+        # CHECK PRE REQUESITES
+        ########################################################################
+        if not isinstance(dependencies, list):
+            Log.e('Error: Dependencies must be a list')
+            return False
 
-        self.CHECKS_PASSED = {}
+        valid_dependencies   = ['full', 'static', 'dynamic', 'signing', 'drozer', 'avd']
+        invalid_dependencies = list(set(dependencies)-set(valid_dependencies))
+        if invalid_dependencies:
+            Log.e('Error: The following dependencies cannot be checked: {deps}'.format(deps=', '.join(invalid_dependencies)))
+            return False
 
-        if 'full' in dependency or 'drozer' in dependency or 'dynamic' in dependency:
-            if not settings.drozer or not path.exists(settings.drozer):
-                passed = False
-            if not silent: Log.w('Drozer Path      : {path}'.format(path=settings.drozer))
+        ########################################################################
+        # CHECK SAVED DEPENDENCIES
+        ########################################################################
+        if all([d in self.CHECKS_PASSED for d in dependencies]) and not force: # if all dependencies have been checked before
+            return all([self.CHECKS_PASSED[d] for d in self.CHECKS_PASSED if d in dependencies])
 
-            lpassed = self.has(Drozer.PACKAGE, settings.device)
-            if not lpassed:
-                if install:
-                    self.ADB.install(settings.drozer_agent)
-                    lpassed = self.has(Drozer.PACKAGE, settings.device)
-            passed = passed and lpassed
-            if not silent: Log.w('Drozer Agent APK : {path}'.format(path=lpassed))
+        if 'full' in dependencies:
+            self.CHECKS_PASSED['full'] = True
 
-        if 'full' in dependency or 'adb' in dependency or 'dynamic' in dependency:
-            if not settings.adb or not path.exists(settings.adb):
-                passed = False
-            if not silent: Log.w('ADB Path         : {path}'.format(path=settings.adb))
+        ########################################################################
+        # STATIC DEPENDENCIES
+        ########################################################################
+        if 'full' in dependencies or 'static' in dependencies:
+            self.CHECKS_PASSED['static'] = True
 
-        if 'full' in dependency or 'sdkmanager' in dependency or 'dynamic' in dependency:
-            if not settings.sdkmanager or not path.exists(settings.sdkmanager):
-                passed = False
-            if not silent: Log.w('SDKManager Path  : {path}'.format(path=settings.sdkmanager))
+            static_dependencies = ['apktool', 'jdcli', 'dex2jar']
+            for d in static_dependencies:
+                if not path.exists(getattr(settings, d)):
+                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['dynamic'] = False
+                if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
 
-        if 'full' in dependency or 'avdmanager' in dependency or 'dynamic' in dependency:
-            if not settings.avdmanager or not path.exists(settings.avdmanager):
-                passed = False
-            if not silent: Log.w('AVDManager Path  : {path}'.format(path=settings.avdmanager))
+        ########################################################################
+        # DYNAMIC DEPENDENCIES
+        ########################################################################
+        if 'full' in dependencies or 'dynamic' in dependencies:
+            self.CHECKS_PASSED['dynamic'] = True
 
-        if 'full' in dependency or 'emulator' in dependency or 'dynamic' in dependency:
-            if not settings.emulator or not path.exists(settings.emulator):
-                passed = False
-            if not silent: Log.w('Emulator Path    : {path}'.format(path=settings.emulator))
+            dynamic_dependencies = ['adb']
+            for d in dynamic_dependencies:
+                if not path.exists(getattr(settings, d)):
+                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['dynamic'] = False
+                if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
 
-        if 'full' in dependency or 'apktool' in dependency or 'static' in dependency:
-            if not settings.apktool or not path.exists(settings.apktool):
-                passed = False
-            if not silent: Log.w('Apktool Path     : {path}'.format(path=settings.apktool))
+            if not self.device():
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['dynamic'] = False
+            if not silent: Log.w('using device: {device}'.format(device=self.device()))
 
-        if 'full' in dependency or 'jdcli' in dependency or 'static' in dependency:
-            if not settings.jdcli or not path.exists(settings.jdcli):
-                passed = False
-            if not silent: Log.w('JD-Cli Path      : {path}'.format(path=settings.jdcli))
+        ########################################################################
+        # DROZER DEPENDENCIES
+        ########################################################################
+        if 'full' in dependencies or 'drozer' in dependencies:
+            self.CHECKS_PASSED['drozer'] = True
 
-        if 'full' in dependency or 'dex2jar' in dependency or 'static' in dependency:
-            if not settings.dex2jar or not path.exists(settings.dex2jar):
-                passed = False
-            if not silent: Log.w('Dex2jar Path     : {path}'.format(path=settings.dex2jar))
+            if not path.exists(settings.drozer):
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['drozer'] = False
+            if not silent: Log.w('drozer path: {path}'.format(path=settings.drozer))
 
-        if 'full' in dependency or 'avd' in dependency:
-            if not settings.avd or settings.avd not in Utils.run('{avdmanager} list avd'.format(avdmanager=settings.avdmanager))[0]:
-                if not install or (install and not self.create_avd()):
-                    passed = False
-            if not silent: Log.w('AVD              : {path}'.format(path=settings.avd))
+            if install and self.device() and not self.has(Drozer.PACKAGE, self.device()):
+                self.install(settings.drozer_agent)
+            if not self.device() or not self.has(Drozer.PACKAGE, self.device()):
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['drozer'] = False
+            if not silent: Log.w('drozer agent APK installed: {path}'.format(path=self.CHECKS_PASSED['drozer']))
 
-        if 'full' in dependency or 'signjar' in dependency or 'signing' in dependency:
-            if not settings.signjar or not path.exists(settings.signjar):
-                passed = False
-            if not silent: Log.w('Sign Jar Path    : {path}'.format(path=settings.signjar))
+        ########################################################################
+        # AVD DEPENDENCIES
+        ########################################################################
+        if 'full' in dependencies or 'avd' in dependencies:
+            self.CHECKS_PASSED['avd'] = True
 
-        if 'full' in dependency or 'cert' in dependency or 'signing' in dependency:
-            if not settings.cert or not path.exists(settings.cert):
-                passed = False
-            if not silent: Log.w('Certificate Path : {path}'.format(path=settings.cert))
+            avd_dependencies = ['avdmanager', 'sdkmanager', 'emulator']
+            for d in avd_dependencies:
+                if not path.exists(getattr(settings, d)):
+                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['avd'] = False
+                if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
 
-        if 'full' in dependency or 'pk8' in dependency or 'signing' in dependency:
-            if not settings.pk8 or not path.exists(settings.pk8):
-                passed = False
-            if not silent: Log.w('PK8 File Path    : {path}'.format(path=settings.pk8))
+            if install and settings.avd not in self.avds():
+                self.create_avd()
+            if settings.avd not in self.avds():
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['avd'] = False
+            if not silent: Log.w('AVD {name} Found: {found}'.format(name=settings.avd, found=self.CHECKS_PASSED['avd']))
 
-        # Save state
-        if isinstance(dependency, list):
-            for d in dependency:
-                self.CHECKS_PASSED[d] = passed
-        else:
-            self.CHECKS_PASSED[dependency] = passed
+        ########################################################################
+        # SIGNING DEPENDENCIES
+        ########################################################################
+        if 'full' in dependencies or 'signing' in dependencies:
+            self.CHECKS_PASSED['signing'] = True
 
-        return passed
+            signing_dependencies = ['signjar', 'cert', 'pk8']
+            for d in signing_dependencies:
+                if not path.exists(getattr(settings, d)):
+                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['signing'] = False
+                if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
+
+        return all([self.CHECKS_PASSED[d] for d in self.CHECKS_PASSED if d in dependencies])
 
 class ADB(object):
 
@@ -330,6 +403,9 @@ class ADB(object):
             Log.e('Error: No device connected. Could not run: {command}'.format(command=command))
             return []
         return self._run('-s {device} {command}'.format(device=device, command=command), shell=shell)
+
+    def device(self):
+        return self.DEVICE
 
     def set_device(self, device):
         self.DEVICE = device
@@ -389,6 +465,8 @@ class ADB(object):
         return self._run_on_device('forward --remove {local}'.format(local=local))
 
     def start_app_on(self, device, package):
+        if device == None:
+            device = self.DEVICE
         return self._run_on_device('shell monkey -p {package} -c android.intent.category.LAUNCHER 1'.format(package=package), device=device)[0]
 
     def start_app(self, package=None):

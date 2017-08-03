@@ -1,4 +1,4 @@
-from utils.utils import Issue
+from mat.utils.utils import Issue
 
 class Issue(Issue):
 
@@ -10,6 +10,6 @@ class Issue(Issue):
     FINDINGS    = 'The Team found the application not to be compiled with PIE flag.\n'
 
     def run(self):
-        if 'PIE' not in self.ANALYSIS.UTILS.run_on_ios('otool -hv {binary}'.format(binary=self.ANALYSIS.WORKING_BIN))[0]:
+        if 'PIE' not in self.ANALYSIS.UTILS.run_on_ios('otool -hv {binary}'.format(binary=self.ANALYSIS.IOS_BIN_PATH))[0]:
             self.REPORT  = True
 

@@ -1,5 +1,5 @@
-from utils.utils import Issue
-from utils.android import Drozer
+from mat.utils.utils import Issue
+from mat.utils.android import Drozer
 
 class Issue(Issue):
 
@@ -14,10 +14,10 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['dynamic', 'drozer'])
 
     def run(self):
-        self.ANALYSIS.launch_app()
-        self.DROZER = Drozer(adb=self.ANALYSIS.ADB)
+        self.ANALYSIS.UTILS.launch_app()
 
-        output = self.DROZER.injection(self.ANALYSIS.PACKAGE)
+        drozer = self.ANALYSIS.UTILS.get_drozer()
+        output = drozer.injection(self.ANALYSIS.PACKAGE)
         result = Drozer.parse_output('Injection in Projection', output) + Drozer.parse_output('Injection in Selection', output)
         for i in range(result.count('No vulnerabilities found.')):
             result.remove('No vulnerabilities found.')
@@ -26,6 +26,6 @@ class Issue(Issue):
             self.DETAILS = list(set(result))
             self.REPORT  = True
 
-        self.DROZER.stop()
+        drozer.stop()
 
 

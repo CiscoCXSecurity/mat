@@ -78,7 +78,7 @@ class Issue(object):
         self.DETAILS  = None
 
     def dependencies(self):
-        self.ANALYSIS.UTILS.check_dependencies(['full'], install=True)
+        return self.ANALYSIS.UTILS.check_dependencies(['full'], install=True)
 
     def run(self):
         return True
@@ -147,21 +147,17 @@ class Utils:
         return Utils.run('{emulator} -avd {avd}'.format(emulator=settings.emulator, avd=settings.avd), shell=True, process=True)
 
     @staticmethod
-    def strings_grep_command(command=None, src=None):
-        if not command or not src:
-            return None
-        return Utils.run('{strings} {src} | {grep} {command}'.format(grep=settings.grep, command=command), shell=True)[0]
+    def strings_grep_command(command, source_file):
+        result = Utils.run('{strings} {src} | {grep} {command} | sort -u'.format(strings=settings.strings, src=source_file, grep=settings.grep, command=command), shell=True)[0]
+        return [{'line': 0, 'code': line} for line in result.split('\n') if line]
 
     @staticmethod
-    def grep_command(command=None, source=''):
-        if not command:
-            return None
-        return Utils._grep_results(Utils.run('{grep} {command}'.format(grep=settings.grep, command=command), shell=True)[0], source)
+    def grep_command(command, working_path=''):
+        return Utils._grep_results(Utils.run('{grep} {command}'.format(grep=settings.grep, command=command), shell=True)[0], working_path)
 
     @staticmethod
-    def grep(regex=None, source=None):
-        if not regex or not source:
-            return None
+    def grep(regex, source, working_path=None):
+        working_path = working_path or source
         return Utils.grep_command('-aREn "{regex}" {src}'.format(regex=regex, src=source), source)
 
     @staticmethod

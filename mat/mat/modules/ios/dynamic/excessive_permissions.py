@@ -1,4 +1,4 @@
-from utils.utils import Issue
+from mat.utils.utils import Issue
 
 IOS_PERMISSIONS = [
     'NSAppleMusicUsageDescription', 'NSBluetooth', 'NSCalendarsUsage',
@@ -17,7 +17,7 @@ class Issue(Issue):
     FINDINGS    = 'The Team identified the following excessive permissions used by the application:\n'
 
     def run(self):
-        entitlements = self.ANALYSIS.UTILS.get_entitlements(self.ANALYSIS.FULL_BIN_PATH)
+        entitlements = self.ANALYSIS.UTILS.get_entitlements(self.ANALYSIS.IOS_BIN_PATH)
 
         permissions = []
         if 'get-tasks-allow' in entitlements and entitlements['get-tasks-allow']:

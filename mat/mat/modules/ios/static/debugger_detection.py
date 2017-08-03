@@ -1,4 +1,4 @@
-from utils.utils import Utils, Issue
+from mat.utils.utils import Utils, Issue
 
 class Issue(Issue):
 
@@ -11,18 +11,13 @@ class Issue(Issue):
 
     REGEX       = r'ptrace'
 
+    def dependencies(self):
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
+
     def run(self):
-        result = Utils.grep_command('-REin "{regex}" {bin} {src}'.format(regex=self.REGEX, bin=self.ANALYSIS.LOCAL_WORKING_BIN, src=self.ANALYSIS.LOCAL_CLASS_DUMP), self.ANALYSIS.LOCAL_WORKING)
-        if not result:
+        result = Utils.grep(regex=self.REGEX, source=self.ANALYSIS.LOCAL_CLASS_DUMP, working_path=self.ANALYSIS.LOCAL_WORKING_FOLDER)
+        strings_result = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-E "{regex}"'.format(regex=self.REGEX))
+
+        if not result and not strings_result:
             self.REPORT = True
 
-"""
-    'debugger-detection': {
-        'regex': 'ptrace',
-        'ignore-case': True,
-        'reverse': True,
-        'title': 'Debugger Detection Not Present',
-        'issue-id': 'debugger-detection',
-        'include-findings': False
-    },
-"""

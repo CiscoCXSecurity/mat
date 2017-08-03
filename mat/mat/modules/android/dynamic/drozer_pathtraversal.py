@@ -1,5 +1,5 @@
-from utils.utils import Issue
-from utils.android import Drozer
+from mat.utils.utils import Issue
+from mat.utils.android import Drozer
 
 class Issue(Issue):
 
@@ -14,14 +14,12 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['dynamic', 'drozer'])
 
     def run(self):
-        self.ANALYSIS.launch_app()
-        self.DROZER = Drozer(adb=self.ANALYSIS.ADB)
+        self.ANALYSIS.UTILS.launch_app()
 
-        result = Drozer.parse_output('Vulnerable Providers', self.DROZER.traversal(self.ANALYSIS.PACKAGE))
+        drozer = self.ANALYSIS.UTILS.get_drozer()
+        result = Drozer.parse_output('Vulnerable Providers', drozer.traversal(self.ANALYSIS.PACKAGE))
         if result and 'No vulnerable providers found.' not in result:
             self.DETAILS = result
             self.REPORT  = True
-
-        self.DROZER.stop()
 
 

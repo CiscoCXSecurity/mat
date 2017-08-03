@@ -2,73 +2,75 @@
 from os import path, makedirs
 from time import sleep
 
+# dynamic load modules
+from os import listdir
+from imp import load_source
+
 # local modules
-from analysis.cordova import CordovaAnalysis
-from utils.utils import Utils, Log, die
-from utils.android import Manifest
-from utils import settings
+from cordova import CordovaAnalysis
+from mat.utils.utils import Utils, Log
+from mat.utils.android import Manifest
+from mat.utils import settings
 
 
 class AndroidAnalysis(object):
+    """
+        LOCAL_WORKING_FOLDER - Main folder where everything is going to be saved, usually ./mat-output
+        LOCAL_DATA_CONTENT   - Folder where the data contents of the app are saved from the device
+        LOCAL_DECOMPILED_APP - Folder where the app can eb found decompiled (it includes resources and smali folders)
+        LOCAL_SOURCE         - Folder that contains the extracted source from the DEX files
+        LOCAL_SMALI          - Folder containing the smali code for the application being analysed
+
+        PACKAGE              - The package URI of the app being analysed
+        WORKING_APK_FILE     - Path for the APK file of the app being analysed
+        JAR_FILE             - JAR file extracted from the DEX file of the app
+
+        UTILS                - Object with several methods to interact with the device and app
+        MANIFEST             - Manifest object parsed from the manifest and apktool.yml files
+    """
 
     LOCAL_WORKING_FOLDER      = 'android'
     LOCAL_DATA_CONTENT        = 'data-contents'
     LOCAL_DECOMPILED_APP      = 'decompiled-app'
     LOCAL_SOURCE              = 'src-files'
 
-    def __init__(self, utils, adb, apk=None, package=None):
+    def __init__(self, utils, apk=None, package=None):
         Log.w('Creating Analysis for: {app} / {apk}'.format(apk=apk, app=package))
 
         self.UTILS            = utils
         self.WORKING_APK_FILE = apk
         self.PACKAGE          = package
-        self.ADB              = adb
+        self.PREPARED         = self.prepare_analysis()
 
-        self.launched         = False
-
-    def launch_app(self):
-        if not self.launched:
-            self.launched = True
-            self.ADB.start_app(self.PACKAGE) # launch the app
-            sleep(5)
-
-    def prepare_analysis(self, atype='full', decompile=True):
+    def prepare_analysis(self, decompile=True):
         Log.w('Preparing Android Analysis')
 
-        #if not self.UTILS.check_dependencies(['static', 'dynamic' if 'full' in atype else 'static'], install=True, silent=True):
-            #die('Error: Dependencies not met, run `-r` for more details')
+        if not self.UTILS.check_dependencies(['static', 'dynamic'], install=True, silent=True):
+            Log.e('Error: Dependencies not met, run `-r` for more details')
 
         self.LOCAL_WORKING_FOLDER = '{output}/{work}'.format(output=settings.output, work=AndroidAnalysis.LOCAL_WORKING_FOLDER)
-        if not path.exists(self.LOCAL_WORKING_FOLDER):
-            makedirs(self.LOCAL_WORKING_FOLDER)
-
         self.LOCAL_DATA_CONTENT   = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=AndroidAnalysis.LOCAL_DATA_CONTENT)
-        if not path.exists(self.LOCAL_DATA_CONTENT):
-            makedirs(self.LOCAL_DATA_CONTENT)
-
         self.LOCAL_DECOMPILED_APP = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=AndroidAnalysis.LOCAL_DECOMPILED_APP)
-        if not path.exists(self.LOCAL_DECOMPILED_APP):
-            makedirs(self.LOCAL_DECOMPILED_APP)
-
         self.LOCAL_SOURCE         = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=AndroidAnalysis.LOCAL_SOURCE)
-        if not path.exists(self.LOCAL_SOURCE):
-            makedirs(self.LOCAL_SOURCE)
-
-        self.LOCAL_SMALI          = '{decompiled}/smali'.format(decompiled=self.LOCAL_DECOMPILED_APP)
+        local_paths = ['LOCAL_WORKING_FOLDER', 'LOCAL_DATA_CONTENT', 'LOCAL_DECOMPILED_APP', 'LOCAL_SOURCE']
+        for local_path in local_paths:
+            if not path.exists(getattr(self, local_path)):
+                makedirs(getattr(self, local_path))
 
         if self.WORKING_APK_FILE:
             original = self.WORKING_APK_FILE
             self.WORKING_APK_FILE = '{working}/{apk}'.format(working=self.LOCAL_WORKING_FOLDER, apk=self.WORKING_APK_FILE.rsplit('/', 1)[1])
             Utils.run('cp {oapk} {apk}'.format(oapk=original, apk=self.WORKING_APK_FILE))
 
-            if 'static' not in atype:
+            if self.UTILS.device():
                 Log.w('Installing application')
-                self.ADB.install(self.WORKING_APK_FILE)
+                self.UTILS.install(self.WORKING_APK_FILE)
 
         elif self.PACKAGE:
             device_apk = self.UTILS.getAPK(self.PACKAGE)
             if not device_apk:
-                die('Error: Package not found on the device')
+                Log.e('Error: Package not found on the device')
+                return False
 
             self.WORKING_APK_FILE = '{working}/{package}.apk'.format(working=self.LOCAL_WORKING_FOLDER, package=self.PACKAGE)
             self.UTILS.pull(device_apk, self.WORKING_APK_FILE)
@@ -78,10 +80,10 @@ class AndroidAnalysis(object):
             Log.w('Decompiling {apk} to {dir}'.format(apk=self.WORKING_APK_FILE, dir=self.LOCAL_DECOMPILED_APP))
             Utils.run('{apktool} -q d -f {apk} -o {out}'.format(apktool=settings.apktool, apk=self.WORKING_APK_FILE, out=self.LOCAL_DECOMPILED_APP))
 
-        self.MANIFEST = Manifest(self.LOCAL_DECOMPILED_APP)
-        self.PACKAGE  = self.MANIFEST.package
-
-        self.JAR_FILE = '{working}/{package}.jar'.format(working=self.LOCAL_WORKING_FOLDER, package=self.PACKAGE)
+        self.MANIFEST    = Manifest(self.LOCAL_DECOMPILED_APP)
+        self.PACKAGE     = self.MANIFEST.package
+        self.JAR_FILE    = '{working}/{package}.jar'.format(working=self.LOCAL_WORKING_FOLDER, package=self.PACKAGE)
+        self.LOCAL_SMALI = '{decompiled}/smali'.format(decompiled=self.LOCAL_DECOMPILED_APP)
 
         if decompile:
             Log.w('Converting {apk} classes to {jar}'.format(apk=self.WORKING_APK_FILE, jar=self.JAR_FILE))
@@ -90,35 +92,23 @@ class AndroidAnalysis(object):
             Log.d('Extrating java classes from {jar} to {src}'.format(src=self.LOCAL_SOURCE, jar=self.JAR_FILE))
             Utils.run('{jdcli} {jar} -od {src}'.format(jdcli=settings.jdcli, src=self.LOCAL_SOURCE, jar=self.JAR_FILE))
 
+        return True
+
     def clean_analysis(self):
         Log.w('Cleaning Android Analysis')
 
         if settings.uninstall:
-            self.ADB.uninstall(self.PACKAGE)
+            self.UTILS.ADB.uninstall(self.PACKAGE)
 
         if settings.clean:
             Utils.rmtree(self.LOCAL_WORKING_FOLDER)
 
-        self.UTILS.clean()
-
-    def run_dynamic_analysis(self):
-
-        if not self.ADB.unlocked(settings.device):
-            Log.w('Please unlock the device')
-        while not self.ADB.unlocked(settings.device):
-            sleep(5)
-
-        # launch the app
-        self.launch_app()
+    def _run_custom_modules(self, module_type):
         issues = []
-
-        import modules.android.dynamic
-        dynamic_checks = [check for check in dir(modules.android.dynamic) if not check.startswith('__') and 'import_submodules' not in check]
-        for check in dynamic_checks:
-            Log.d('Running Dynamic {check}'.format(check=check))
-            check_module = __import__('modules.android.dynamic.{check}'.format(check=check), fromlist=['Issue'])
-
-            issue = check_module.Issue(self)
+        modules = [m.replace('.py', '') for m in listdir('{local}/{type}'.format(local=settings.LOCAL_SETTINGS, type=module_type)) if not m.endswith('.pyc')]
+        for m in modules:
+            custom_module = load_source('check', '{local}/{type}/{check}.py'.format(local=settings.LOCAL_SETTINGS, type=module_type, check=m))
+            issue = custom_module.Issue(self)
             if issue.dependencies():
                 issue.run()
             if issue.REPORT:
@@ -126,20 +116,55 @@ class AndroidAnalysis(object):
 
         return issues
 
-    def run_static_analysis(self):
-        issues = []
+    def _run_custom_static_analysis(self):
+        module_type = 'modules/android/static'
+        return self._run_custom_modules(module_type)
 
-        import modules.android.static
-        static_checks = [check for check in dir(modules.android.static) if not check.startswith('__') and 'import_submodules' not in check]
-        for check in static_checks:
-            Log.d('Running Static {check}'.format(check=check))
-            check_module = __import__('modules.android.static.{check}'.format(check=check), fromlist=['Issue'])
+    def _run_custom_dynamic_analysis(self):
+        module_type = 'modules/android/dynamic'
+        return self._run_custom_modules(module_type)
+
+    def run_dynamic_analysis(self):
+        if not self.UTILS.ADB.unlocked(settings.device):
+            Log.w('Please unlock the device')
+        while not self.UTILS.ADB.unlocked(settings.device):
+            sleep(5)
+
+        # launch the app
+        self.UTILS.launch_app(self.PACKAGE)
+
+        issues = []
+        import mat.modules.android.dynamic
+        dynamic_checks = [m.replace('.py', '') for m in listdir(mat.modules.android.dynamic.__path__[0]) if not m.endswith('.pyc') and not m.startswith('__')]
+        for check in dynamic_checks:
+            Log.d('Running Dynamic {check}'.format(check=check))
+            check_module = __import__('mat.modules.android.dynamic.{check}'.format(check=check), fromlist=['Issue'])
 
             issue = check_module.Issue(self)
             if issue.dependencies():
                 issue.run()
             if issue.REPORT:
                 issues += [issue]
+
+        issues += self._run_custom_dynamic_analysis()
+
+        return issues
+
+    def run_static_analysis(self):
+        issues = []
+        import mat.modules.android.static
+        static_checks = [m.replace('.py', '') for m in listdir(mat.modules.android.static.__path__[0]) if not m.endswith('.pyc') and not m.startswith('__')]
+        for check in static_checks:
+            Log.d('Running Static {check}'.format(check=check))
+            check_module = __import__('mat.modules.android.static.{check}'.format(check=check), fromlist=['Issue'])
+
+            issue = check_module.Issue(self)
+            if issue.dependencies():
+                issue.run()
+            if issue.REPORT:
+                issues += [issue]
+
+        issues += self._run_custom_static_analysis()
 
         return issues
 
@@ -150,16 +175,20 @@ class AndroidAnalysis(object):
         return []
 
     def run_analysis(self, atype='full'):
-        self.prepare_analysis(atype)
+        if not self.PREPARED:
+            Log.e('Error: Analysis not prepared')
+            return []
+
+        issues = []
 
         Log.w('Starting Android Analysis')
-        issues = self.run_static_analysis()
+        if self.UTILS.check_dependencies(['static'], silent=True, install=False):
+            issues = self.run_static_analysis()
+            issues += self.run_cordova_checks()
 
-        if 'full' in atype or 'dynamic' in atype:
+        if ('full' in atype or 'dynamic' in atype) and self.UTILS.check_dependencies(['dynamic'], silent=True, install=False):
             Log.w('Starting Dynamic Analysis')
             issues += self.run_dynamic_analysis()
-
-        issues += self.run_cordova_checks()
 
         # calculate and save md5
         md5 = Utils.run('{md5sum} {working}'.format(md5sum=settings.md5sum, working=self.WORKING_APK_FILE))[0]
