@@ -6,7 +6,7 @@ from sys import argv
 from os import getenv, path, makedirs, rename
 from shutil import copy
 
-version = '3.1.0'
+version = '3.1.1'
 file_path = path.realpath(__file__).rsplit('/', 1)[0]
 
 HOME              = getenv('HOME')
@@ -83,7 +83,7 @@ def common(debug=False):
 
     # copy lib files to $HOME/.config/audits/lib/
     for file in LIB_FILES:
-        copy('mat/lib/{file}'.format(file=file), "{lib}/{file}".format(lib=LIB_FOLDER, file=file))
+        copy('lib/{file}'.format(file=file), "{lib}/{file}".format(lib=LIB_FOLDER, file=file))
         if not path.exists("{lib}/{file}".format(lib=LIB_FOLDER, file=file)):
             print('[-] Failed to copy file {file} to {lib}'.format(lib=LIB_FOLDER, file=file))
             exit(0)

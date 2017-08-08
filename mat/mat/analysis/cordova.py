@@ -92,7 +92,7 @@ class CordovaAnalysis(object):
         issues = []
 
         import mat.modules.cordova.static
-        static_checks = [m.replace('.py', '') for m in listdir(mat.modules.cordova.static.__path__[0]) if not m.endswith('.pyc')]
+        static_checks = [m.replace('.py', '') for m in listdir(mat.modules.cordova.static.__path__[0]) if not m.endswith('.pyc') and not m.startswith('__')]
         for check in static_checks:
             Log.d('Running Static {check}'.format(check=check))
             check_module = __import__('mat.modules.cordova.static.{check}'.format(check=check), fromlist=['Issue'])

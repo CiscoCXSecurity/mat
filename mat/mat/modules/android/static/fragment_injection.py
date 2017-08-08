@@ -15,7 +15,7 @@ class Issue(Issue):
     def run(self):
         activities = Utils.grep(r'extends PreferenceActivity', self.ANALYSIS.LOCAL_SOURCE)
 
-        if activities and self.ANALYSIS.MANIFEST.getSDK('min') < '18':
+        if activities and self.ANALYSIS.MANIFEST.get_sdk('min') < '18':
             self.REPORT  = True
             self.DETAILS = Utils.grep_details(activities, self.ANALYSIS.LOCAL_SOURCE)
 

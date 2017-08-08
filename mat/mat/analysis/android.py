@@ -12,20 +12,28 @@ from mat.utils.utils import Utils, Log
 from mat.utils.android import Manifest
 from mat.utils import settings
 
-
 class AndroidAnalysis(object):
     """
         LOCAL_WORKING_FOLDER - Main folder where everything is going to be saved, usually ./mat-output
+
         LOCAL_DATA_CONTENT   - Folder where the data contents of the app are saved from the device
+
         LOCAL_DECOMPILED_APP - Folder where the app can eb found decompiled (it includes resources and smali folders)
+
         LOCAL_SOURCE         - Folder that contains the extracted source from the DEX files
+
         LOCAL_SMALI          - Folder containing the smali code for the application being analysed
 
+
         PACKAGE              - The package URI of the app being analysed
+
         WORKING_APK_FILE     - Path for the APK file of the app being analysed
+
         JAR_FILE             - JAR file extracted from the DEX file of the app
 
+
         UTILS                - Object with several methods to interact with the device and app
+
         MANIFEST             - Manifest object parsed from the manifest and apktool.yml files
     """
 
@@ -48,7 +56,7 @@ class AndroidAnalysis(object):
         if not self.UTILS.check_dependencies(['static', 'dynamic'], install=True, silent=True):
             Log.e('Error: Dependencies not met, run `-r` for more details')
 
-        self.LOCAL_WORKING_FOLDER = '{output}/{work}'.format(output=settings.output, work=AndroidAnalysis.LOCAL_WORKING_FOLDER)
+        self.LOCAL_WORKING_FOLDER = '{output}/{work}-{uuid}'.format(output=settings.output, work=AndroidAnalysis.LOCAL_WORKING_FOLDER, uuid=(self.PACKAGE or self.WORKING_APK_FILE.rsplit('/',1)[-1].rsplit('.',1)[0]))
         self.LOCAL_DATA_CONTENT   = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=AndroidAnalysis.LOCAL_DATA_CONTENT)
         self.LOCAL_DECOMPILED_APP = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=AndroidAnalysis.LOCAL_DECOMPILED_APP)
         self.LOCAL_SOURCE         = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=AndroidAnalysis.LOCAL_SOURCE)

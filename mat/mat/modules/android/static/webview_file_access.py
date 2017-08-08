@@ -13,9 +13,10 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['static'])
 
     def run(self):
-        files = Utils.grep(r'import android\.webkit\.WebView', self.ANALYSIS.LOCAL_SOURCE) or []
-        safe_files = Utils.grep(r'setAllowFileAccess\(false\)', ' '.join(list(files))) or []
-        report_files = list(set(files) - set(safe_files))
+        report_files = files = Utils.grep(r'import android\.webkit\.WebView', self.ANALYSIS.LOCAL_SOURCE) or []
+        if files:
+            safe_files = Utils.grep(r'setAllowFileAccess\(false\)', ' '.join(list(files))) or []
+            report_files = list(set(files) - set(safe_files))
 
         if report_files:
             self.REPORT  = True

@@ -15,6 +15,7 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['static'])
 
     def run(self):
+        remove_urls = []
         urls = Utils.grep(r'http://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?', self.ANALYSIS.LOCAL_SMALI + "*")
         if urls:
             for f in urls:
@@ -23,7 +24,10 @@ class Issue(Issue):
                         urls[f].remove(finding)
 
                 if not urls[f]:
-                    urls.pop(f)
+                    remove_urls += [f]
+
+        for f in remove_urls:
+            urls.pop(f)
 
         if urls:
             self.REPORT  = True

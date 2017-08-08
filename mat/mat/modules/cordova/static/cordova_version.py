@@ -15,7 +15,7 @@ class Issue(Issue):
     def run(self):
         CORDOVA_VERSION = CORDOVA_VERSION_DETAILS = None
         if self.ANALYSIS.CORDOVA_FILE:
-            with open(self.CORDOVA_FILE, 'r') as f:
+            with open(self.ANALYSIS.CORDOVA_FILE, 'r') as f:
                 cordova = f.read()
 
             for line in cordova.split('\n'):

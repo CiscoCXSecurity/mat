@@ -14,7 +14,7 @@ class Report():
             Report.FILENAME = (settings.apk.rsplit('/', 1)[1] if '/' in settings.apk else settings.apk) if settings.apk else (settings.package if settings.package else 'mobile.app')
 
         if 'ios' in settings.type:
-            Report.FILENAME = settings.app if settings.app else 'mobile.app'
+            Report.FILENAME =  alias if alias else (settings.app if settings.app else 'mobile.app')
 
         alias = '{type} {name}'.format(type='iOS' if 'ios' in settings.type else 'Android', name=Report.FILENAME if not alias else alias)
 
@@ -42,7 +42,7 @@ class ReportIssue():
     @staticmethod
     def load(issue=None):
         if not issue: return None
-        return Issue(issue['title'], issue['id'], issue['findings'], issue['details'])
+        return ReportIssue(issue['title'], issue['id'], issue['findings'], issue['details'])
 
     def print_issue(self, tprint=True):
         result =  '---------------------------------- ISSUE ----------------------------------\n'

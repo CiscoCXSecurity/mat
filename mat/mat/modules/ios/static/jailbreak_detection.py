@@ -9,14 +9,17 @@ class Issue(Issue):
     ISSUE_TITLE = 'Application Does Not Perform Jailbreak Detection'
     FINDINGS    = 'The Team found that the application did not implement jailbreak detection.'
 
-    REGEX       = r'jailbreak|cydia'
+    REGEX       = r'jailbr|cydia'
 
     def dependencies(self):
         return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
 
     def run(self):
-        result = Utils.grep(regex=self.REGEX, source=self.ANALYSIS.LOCAL_CLASS_DUMP, working_path=self.ANALYSIS.LOCAL_WORKING_FOLDER)
-        result[self.ANALYSIS.LOCAL_WORKING_BIN] = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-E "{regex}"'.format(regex=self.REGEX))
+        result = Utils.grep(regex=self.REGEX, source=self.ANALYSIS.LOCAL_CLASS_DUMP, working_path=self.ANALYSIS.LOCAL_WORKING_FOLDER, ignore_case=True)
+        result[self.ANALYSIS.LOCAL_WORKING_BIN] = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-iE "{regex}"'.format(regex=self.REGEX))
+        if not result[self.ANALYSIS.LOCAL_WORKING_BIN]:
+            result.pop(self.ANALYSIS.LOCAL_WORKING_BIN)
+
         self.REPORT = True
 
         if result:

@@ -21,7 +21,6 @@ from analysis.ios import IOSAnalysis
 
 """
 TODO:
- - change cordova version id on xdb to out-of-date-cordova
  - check that the Cisco app results are the same as the old MAT results
 """
 
@@ -30,9 +29,10 @@ TODO LIST
 * Add interactive mode
 * Finish Cordova features check
 * Change drozer checks for manual checks (remove drozer dependency)
+* Add code obfuscation detection
 """
 
-VERSION = '3.1.0'
+VERSION = '3.1.1'
 
 BANNER = '''
 
@@ -217,23 +217,20 @@ def run_ios():
     iosutils = IOSUtils()
     iosutils.start_tcp_relay()
 
-    if not iosutils.check_dependencies('connection', True):
+    if not iosutils.check_dependencies(['connection'], True):
         die('Error: No connection to the device.')
-
-    if settings.ipa:
-        settings.app = iosutils.install(settings.ipa)
 
     if settings.install:
         iosutils.install(settings.install)
 
     elif settings.unproxy:
-        if not iosutils.check_dependencies('activator', True, True):
+        if not iosutils.check_dependencies(['proxy'], True, True):
             die('Error: Missing dependency - activator.')
 
         iosutils.set_proxy()
 
     elif settings.proxy:
-        if not iosutils.check_dependencies('activator', True, True):
+        if not iosutils.check_dependencies(['proxy'], True, True):
             die('Error: Missing dependency - activator.')
 
         iosutils.set_proxy(settings.proxy[0], int(settings.proxy[1]))
@@ -243,13 +240,13 @@ def run_ios():
         iosutils.list_apps()
 
     elif settings.runchecks:
-        iosutils.check_dependencies('full', install=True)
+        iosutils.check_dependencies(['full', 'proxy'], install=True)
 
     elif settings.listapps:
         iosutils.list_apps()
 
-    elif settings.app:
-        iosanalysis = IOSAnalysis(utils=iosutils, app=settings.app)
+    elif settings.app or settings.ipa:
+        iosanalysis = IOSAnalysis(utils=iosutils, app=settings.app, ipa=settings.ipa)
         settings.results = iosanalysis.run_analysis()
 
         if not settings.SILENT:
@@ -258,7 +255,7 @@ def run_ios():
         if settings.results:
             if not exists(settings.output):
                 makedirs(settings.output)
-            Report.report_to_json(iosanalysis.APP_BIN)
+            Report.report_to_json(iosanalysis.APP_INFO['CFBundleExecutable'])
 
     else:
         die('Error: No IPA or APP specified.')
@@ -270,7 +267,7 @@ def run_android():
         androidutils = AndroidUtils()
         devices = androidutils.devices()
         if settings.runchecks:
-            androidutils.check_dependencies('full', silent=False)
+            androidutils.check_dependencies(['full'], silent=False)
             androidutils.clean()
             die()
 
@@ -288,7 +285,7 @@ def run_android():
             androidutils.list_apps()
 
         elif settings.compile:
-            androidutils.check_dependencies(['apktool', 'signing'], silent=True)
+            androidutils.check_dependencies([['apktool'], 'signing'], silent=True)
             androidutils.compile(settings.compile)
 
         # static only
@@ -387,5 +384,13 @@ androidutils.clean()
 iosutils.clean()
 
 import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/MyBanking.ipa'); r = iosa.run_static_checks()
+import mat; mat.settings.DEBUG = mat.settings.VERBOSE = True; mat.settings.output = "/tmp/mat-tests/ios-apps-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/ios-apps/CiscoDirectory.ipa'); r = iosa.run_static_checks()
+
+        from pprint import pprint
+        print '-------------------------------------------------------------------'
+        pprint(apps)
+        pprint(app_info)
+        print name
+        print '-------------------------------------------------------------------'
 
 """

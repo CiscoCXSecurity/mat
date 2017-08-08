@@ -156,9 +156,9 @@ class Utils:
         return Utils._grep_results(Utils.run('{grep} {command}'.format(grep=settings.grep, command=command), shell=True)[0], working_path)
 
     @staticmethod
-    def grep(regex, source, working_path=None):
+    def grep(regex, source, working_path=None, ignore_case=None):
         working_path = working_path or source
-        return Utils.grep_command('-aREn "{regex}" {src}'.format(regex=regex, src=source), source)
+        return Utils.grep_command('-aRE{case}n "{regex}" {src}'.format(regex=regex, src=source, case=('i' if ignore_case else '')), working_path)
 
     @staticmethod
     def multiple_grep(*greps):
@@ -195,7 +195,7 @@ class Utils:
             if any([f.replace(working_path, '').startswith(i['pattern']) for i in settings.IGNORE]):
                 continue
 
-            details = "{details}\n\n* {file}".format(details=details, file=f.replace(working_path,''))[1:]
+            details = "{details}\n\n* {file}".format(details=details, file=f.replace(working_path,''))
             findings[f].sort()
             for d in sorted(findings[f], key=lambda k: int(k['line'])):
                 details = "{details}\n * Line {line}: {code}".format(details=details, line=d['line'], code=d['code'])

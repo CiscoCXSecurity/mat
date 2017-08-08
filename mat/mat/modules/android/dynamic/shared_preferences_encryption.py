@@ -14,7 +14,7 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['dynamic'])
 
     def run(self):
-        self.ANALYSIS.UTILS.launch_app()
+        self.ANALYSIS.UTILS.launch_app(self.ANALYSIS.PACKAGE)
 
         # pull data contents
         self.ANALYSIS.UTILS.pull_data_content(self.ANALYSIS.PACKAGE, self.ANALYSIS.LOCAL_DATA_CONTENT)

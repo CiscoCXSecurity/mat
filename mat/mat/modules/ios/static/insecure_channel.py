@@ -5,7 +5,7 @@ class Issue(Issue):
     TITLE       = 'Insecure Channels Check'
     DESCRIPTION = 'Checks if the application uses SSL functions to secure encrypted communications'
 
-    ID          = 'insecure-support'
+    ID          = 'insecure-channel'
     ISSUE_TITLE = 'Application Communicates Over Insecure Channel'
     FINDINGS    = 'The Team found that the application did not use SSL functions to secure the encrypted channels.'
 

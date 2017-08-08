@@ -4,6 +4,7 @@ from os import path
 import traceback
 
 from time import sleep
+from uuid import uuid4
 
 # local imports
 from utils import Utils, Log, Command
@@ -25,11 +26,11 @@ class IOSUtils(object):
         self.launched      = False
         self.start_tcp_relay()
 
-    def launch_app(self, app):
+    def launch_app(self, app_info):
         if not self.launched:
             Log.w('Starting the application on the device')
             self.launched = True
-            self.run_app(app)
+            self.run_app(app_info)
             sleep(5)
 
     def clean(self):
@@ -61,20 +62,22 @@ class IOSUtils(object):
 
         return ['', '']
 
-    def run_app(self, app=None):
-        return self.run_on_ios('open {app}'.format(app=app['CodeInfoIdentifier']))
+    def run_app(self, app_info):
+        return self.run_on_ios('open {app}'.format(app=app_info['CFBundleIdentifier']))
 
     def dump_keychain(self, dest='/tmp'):
+        dest = dest.replace('\ ', ' ')
         if self.KEYCHAIN_DUMP:
             Log.d('Dumping Keychain data to {dest} with {bin}'.format(bin=self.KEYCHAIN_DUMP, dest=dest))
-            self.run_on_ios('cd {working}; {keychain}'.format(working=dest, keychain=self.KEYCHAIN_DUMP))
+            self.run_on_ios('cd "{working}"; {keychain}'.format(working=dest, keychain=self.KEYCHAIN_DUMP), shell=True)
         else:
             Log.e('Error: No keychain dump binary found - was prepare_analysis run?')
 
     def dump_file_protect(self, file):
+        file = file.replace('\ ', ' ')
         if self.DUMP_FILE_PROTECT:
             Log.d('Dumping file protection flags of {file} with {bin}'.format(bin=self.DUMP_FILE_PROTECT, file=file))
-            return self.run_on_ios('{dfp} {file}'.format(dfp=self.DUMP_FILE_PROTECT, file=file))[0]
+            return self.run_on_ios('{dfp} "{file}"'.format(dfp=self.DUMP_FILE_PROTECT, file=file), shell=True)[0]
         else:
             Log.e('Error: No file protection dump binary found - was prepare_analysis run?')
 
@@ -114,7 +117,6 @@ class IOSUtils(object):
 
         Log.d("Changing service from {cs} to {es}".format(cs=currentService, es=service))
         if not service:
-            from uuid import uuid4
             service = str(uuid4())
             serviceObject = {
                 'DNS': {},
@@ -209,7 +211,7 @@ class IOSUtils(object):
                 self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['connection'] = False
             if not silent: Log.w('device check: {connected}'.format(connected=uname.strip()))
 
-            required_packages  = ['apt7', 'coreutils', 'com.conradkramer.open']
+            required_packages  = ['apt7', 'coreutils', 'com.conradkramer.open', 'com.ericasadun.utilities', 'odcctools']
             installed_packages = self.installed_packages()
             not_installed      = set(required_packages) - set(installed_packages)
             if not_installed:
@@ -272,10 +274,19 @@ class IOSUtils(object):
                 self.apt_install('libactivator')
 
             activator = self.run_on_ios('which activator')[0][:-2]
-            if not ipainstaller:
+            if not activator:
                 self.CHECKS_PASSED['proxy'] = False
 
-            if not silent: Log.w('iOS activator: {path}'.format(path=ipainstaller.strip()))
+            if not silent: Log.w('iOS activator: {path}'.format(path=activator.strip()))
+
+            required_packages  = ['com.ericasadun.utilities', 'libactivator']
+            installed_packages = self.installed_packages()
+            not_installed      = set(required_packages) - set(installed_packages)
+            if not_installed:
+                self.CHECKS_PASSED['proxy'] = False
+            if not silent: Log.w('packages installed: {packages}'.format(packages=', '.join(list(set(required_packages) - not_installed))))
+            if not silent: Log.w('packages missing: {packages}'.format(packages=', '.join(list(not_installed))))
+
 
         return all([self.CHECKS_PASSED[d] for d in self.CHECKS_PASSED if d in dependencies])
 
@@ -291,29 +302,46 @@ class IOSUtils(object):
             Log.e('Error: Invalid IPA file')
             return False
 
-        self.push(ipa, '/tmp')
-        settings.ipainstaller = self.run_on_ios('which ipainstaller')[0][:-2]
+        tmp_folder = '/tmp/ipa-{uuid}'.format(uuid=uuid4())
+        app_path, app_info = self.unzip_to(ipa=ipa, dest=tmp_folder)
+        apps = self.list_apps(silent=True)
+        app  = [a for a in apps if app_path.rsplit('/', 1)[-1].lower() in apps[a]['Path'].lower()]
 
-        name = ipa.rsplit('/', 1)[1] if '/' in ipa else ipa
-        result = self.run_on_ios('{ipai} -f -d /tmp/{ipa}'.format(ipai=settings.ipainstaller, ipa=name))[0]
+        # install the app
+        if (app and 'Version' in apps[app[0]] and apps[app[0]]['Version'] < app_info['CFBundleVersion']) or not app or not 'Version' in apps[app[0]]:
+            self.push(ipa, '/tmp')
+            settings.ipainstaller = self.run_on_ios('which ipainstaller')[0][:-2]
 
-        if 'Failed' in result or 'Invalid' in result:
-            Log.e('Error: Failed to install the IPA:{result}'.format(result=result.split('\r\n')[-2:-1][0]))
-            return False
+            name = ipa.rsplit('/', 1)[1] if '/' in ipa else ipa
+            name = name.replace('\ ', ' ')
+            result = self.run_on_ios('{ipai} -f -d "/tmp/{ipa}"'.format(ipai=settings.ipainstaller, ipa=name), shell=True)[0]
 
-        if 'successfully' in result.lower():
+            if 'Failed' in result or 'Invalid' in result:
+                Log.e('Error: Failed to install the IPA:{result}'.format(result=result.split('\r\n')[-2:-1][0]))
+                return False
+
+            Log.w('Waiting 10 seconds for the app to finish installing')
+            sleep(10)
             self.update_apps_list(False)
 
-        apps = self.list_apps(silent=True)
-        app_path, app_info = self.unzip_to(ipa=ipa, dest='/tmp/ipa')
-        app  = [a for a in apps if app_info['CFBundleName'].lower() in apps[a]['Path'].lower()]
+            apps = self.list_apps(silent=True)
+            app  = [a for a in apps if app_path.rsplit('/', 1)[-1].lower() in apps[a]['Path'].lower()]
+            if not app:
+                Log.e('Error: Couldn\'t find the installed app, try again')
+
+        Utils.run('rm -rf {dest}'.format(dest=tmp_folder))
 
         return apps[app[0]] if app else None
 
     def unzip_to(self, ipa, dest):
-        Utils.run('{unzip} -o {ipa} -d {dest}'.format(unzip=settings.unzip, ipa=ipa, dest=dest))
-        from os import listdir
-        app = listdir('{dest}/Payload/'.format(dest=dest)).pop()
+        ipa, dest = ipa.replace('\ ', ' '), dest.replace('\ ', ' ')
+        Utils.run('{unzip} -o "{ipa}" -d "{dest}"'.format(unzip=settings.unzip, ipa=ipa, dest=dest), shell=True)
+
+        #from os import listdir
+        #app = listdir('{dest}/Payload/'.format(dest=dest)).pop()
+        files = Utils.run('{unzip} -l "{ipa}"'.format(unzip=settings.unzip, ipa=ipa), shell=True)[0].strip()
+        import re
+        app = re.search(r'Payload\/.*?\.app', files).group().split('/',1)[-1]
 
         self.plist_to_xml('{dest}/Payload/{app}/Info.plist'.format(dest=dest, app=app), ios=False)
         with open('{dest}/Payload/{app}/Info.plist'.format(dest=dest, app=app), 'r') as f:
@@ -322,7 +350,6 @@ class IOSUtils(object):
         return '{dest}/Payload/{app}'.format(dest=dest, app=app), self.plist_to_dict(plist)
 
     def app_executable(self, app, app_info):
-        if not app or not app_info: return None
         IOS_APP_BINARY        = app_info['CFBundleExecutable'].replace(' ', '\ ')
         IOS_APP_PATH          = app['Path'].replace(' ', '\ ')
         return '{apppath}/{appbin}'.format(apppath=IOS_APP_PATH, appbin=IOS_APP_BINARY)
@@ -345,7 +372,7 @@ class IOSUtils(object):
         IOS_BINARY_PATH       = '{apppath}/{appbin}'.format(apppath=IOS_APP_PATH, appbin=IOS_APP_BINARY)
 
         # check if the app is encrypted and decrypt it
-        if 'cryptid 1' in self.run_on_ios('otool -l "{binary}" | grep ENCRYPTION -B1 -A4'.format(binary=IOS_BINARY_PATH))[0]:
+        if 'cryptid 1' in self.run_on_ios('otool -l "{binary}" | grep ENCRYPTION -B1 -A4'.format(binary=IOS_BINARY_PATH), shell=True)[0]:
 
             if self.DUMP_DECRYPT:
                 self.run_on_ios('su mobile -c "cd {working}; DYLD_INSERT_LIBRARIES={dumpdecrypt} {binary}"'.format(working=IOSAnalysis.IOS_WORKING_FOLDER, dumpdecrypt=self.DUMP_DECRYPT, binary=IOS_BINARY_PATH))
@@ -378,41 +405,35 @@ class IOSUtils(object):
 
         return LOCAL_WORKING_BIN, LOCAL_IPA
 
-    def plist_to_xml(self, file=None, ios=True):
-        if not file:
-            return None
-
+    def plist_to_xml(self, file, ios=True):
+        file = file.replace('\ ', ' ')
         if ios:
-            self.run_on_ios('plutil -convert xml1 {file}'.format(file=file))
+            self.run_on_ios('plutil -convert xml1 "{file}"'.format(file=file), shell=True)
         else:
-            Utils.run('{plutil} -convert xml1 {file}'.format(plutil=settings.plutil, file=file))
+            Utils.run('{plutil} -convert xml1 "{file}"'.format(plutil=settings.plutil, file=file), shell=True)
 
-    def plist_to_bin(self, file=None, ios=True):
-        if not file:
-            return None
-
+    def plist_to_bin(self, file, ios=True):
+        file = file.replace('\ ', ' ')
         if ios:
-            self.run_on_ios('plutil -convert binary1 {file}'.format(file=file))
+            self.run_on_ios('plutil -convert binary1 "{file}"'.format(file=file), shell=True)
         else:
-            Utils.run('{plutil} -convert binary1 {file}'.format(plutil=settings.plutil, file=file))
+            Utils.run('{plutil} -convert binary1 "{file}"'.format(plutil=settings.plutil, file=file), shell=True)
 
-    def delete(self, file=None):
-        if not file:
-            return False
-
-        self.run_on_ios('rm -rf {file}'.format(file=file))
+    def delete(self, file):
+        file = file.replace('\ ', ' ')
+        self.run_on_ios('rm -rf "{file}"'.format(file=file), shell=True)
         return True
 
-    def push(self, file=None, path=None):
-        if not file or not path: return False
-        cmd = '{scp} {file} {path}/{end}'.format(scp=settings.scp_to_ios, file=file, path=path, end=file.split('/')[-1])
-        results = Utils.run(cmd, True)
+    def push(self, file, path):
+        file, path = file.replace('\ ', ' '), path.replace('\ ', ' ')
+        cmd = '{scp} "{file}" "{path}/{end}"'.format(scp=settings.scp_to_ios, file=file, path=path, end=file.split('/')[-1])
+        results = Utils.run(cmd, shell=True)
         return '100%' in results[0]
 
     def read_file(self, file, ios=True):
-        if ios:
-            return self.run_on_ios('cat {file}'.format(file=file))[0]
-        return Utils.run('cat {file}'.format(file=file))[0]
+        file = file.replace('\ ', ' ')
+        if ios: return self.run_on_ios('cat "{file}"'.format(file=file), shell=True)[0]
+        return Utils.run('cat "{file}"'.format(file=file), shell=True)[0]
 
     def update_apps_list(self, silent=False):
         if not silent: Log.w('Updating apps list on iOS: may take up to 30 seconds')
@@ -524,10 +545,11 @@ class IOSUtils(object):
         if hasattr(settings, 'tcprelay_process'):
             settings.tcprelay_process.kill()
 
-    def file_exists(self, file=None):
-        return 'cannot access' not in self.run_on_ios('ls {file}'.format(file=file))[0]
+    def file_exists(self, file):
+        file = file.replace('\ ', ' ')
+        return 'cannot access' not in self.run_on_ios('ls "{file}"'.format(file=file), shell=True)[0]
 
-    def get_plist(self, file=None, ios=True):
+    def get_plist(self, file, ios=True):
         try:
             self.plist_to_xml(file, ios=ios)
             return self.plist_to_dict(self.read_file(file, ios=ios))
@@ -539,8 +561,9 @@ class IOSUtils(object):
     def get_info(self, path=None, ios=True):
         return self.get_plist('{app}/Info.plist'.format(app=path.replace(' ', '\ ')), ios=ios)
 
-    def get_entitlements(self, binary=None):
-        text = self.run_on_ios('ldid -e {app}'.format(app=binary))[0]
+    def get_entitlements(self, binary):
+        binary = binary.replace('\ ', ' ')
+        text = self.run_on_ios('ldid -e "{app}"'.format(app=binary))[0]
         if text.count('</plist>') > 1:
             stext = text.split('\r\n')
             text = '\r\n'.join([i for i in stext[:len(stext)/2]])
@@ -548,14 +571,16 @@ class IOSUtils(object):
 
     def pull(self, file=None, path=None):
         if not file or not path: return False
-        cmd = '{scp} {file} {path}'.format(scp=settings.scp_from_ios, file=file, path=path)
-        results = Utils.run(cmd, True)
+        file, path = file.replace('\ ', ' '), path.replace('\ ', ' ')
+        cmd = '{scp} "{file}" "{path}"'.format(scp=settings.scp_from_ios, file=file, path=path)
+        results = Utils.run(cmd, shell=True)
         return '100%' in results[0]
 
     def get_archs(self, binary=None):
         result = []
         if binary:
-            out = self.run_on_ios('otool -hv {binary}'.format(binary=binary))[0]
+            binary = binary.replace('\ ', ' ')
+            out = self.run_on_ios('otool -hv "{binary}"'.format(binary=binary), shell=True)[0]
             if out:
                 for arch in out.split('\n')[3:]:
                     if not arch or not 'EXECUTE' in arch: continue
@@ -578,7 +603,7 @@ class IOSUtils(object):
         return plistlib.writePlistToString(text)
 
     def plist_to_dict(self, text=None):
-        if not text:
-            return {}
+        if not text: return {}
+
         import plistlib
         return plistlib.readPlistFromString(text)

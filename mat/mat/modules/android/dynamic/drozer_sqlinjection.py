@@ -14,7 +14,7 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['dynamic', 'drozer'])
 
     def run(self):
-        self.ANALYSIS.UTILS.launch_app()
+        self.ANALYSIS.UTILS.launch_app(self.ANALYSIS.PACKAGE)
 
         drozer = self.ANALYSIS.UTILS.get_drozer()
         output = drozer.injection(self.ANALYSIS.PACKAGE)

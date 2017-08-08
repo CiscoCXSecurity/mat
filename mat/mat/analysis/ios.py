@@ -13,15 +13,24 @@ from mat.utils import settings
 class IOSAnalysis(object):
     """
         LOCAL_WORKING_FOLDER - Main folder where everything is going to be saved, usually ./mat-output
+
         LOCAL_DATA_CONTENT   - Folder where the data contents of the app are saved from the device
+
         LOCAL_UNZIPED        - Folder containing the unzipped contents of the application
+
         LOCAL_CLASS_DUMP     - Folder containing the classes headers retreive from the application
+
         LOCAL_IPA            - Path to the IPA file retrieve from the file or copied from the original
+
         LOCAL_WORKING_BIN    - Path to the application's binary that can be analysed and modified
 
+
         APP                 - Dictionary containing information about the app on the phone: app path, data path, identifiers and app uuid
+
         APP_INFO            - Information about the app retrieved from Info.plist
+
         IOS_BIN_PATH        - Path to the binary on the device
+
 
         UTILS                - Object with several methods to interact with the device and app
     """
@@ -51,7 +60,7 @@ class IOSAnalysis(object):
 
         # create local output folder
         Log.d('Creating local output folders')
-        self.LOCAL_WORKING_FOLDER = '{output}/{work}'.format(output=settings.output, work=self.LOCAL_WORKING_FOLDER)
+        self.LOCAL_WORKING_FOLDER = '{output}/{work}-{uuid}'.format(output=settings.output, work=self.LOCAL_WORKING_FOLDER, uuid=(self.APP or self.IPA.rsplit('/',1)[-1].rsplit('.',1)[0]))
         self.LOCAL_DATA_CONTENT   = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=self.LOCAL_DATA_CONTENT)
         self.LOCAL_BIN_FOLDER     = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=self.LOCAL_BIN_FOLDER)
         self.LOCAL_CLASS_DUMP     = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=self.LOCAL_CLASS_DUMP)
@@ -95,6 +104,9 @@ class IOSAnalysis(object):
 
             if self.UTILS.check_dependencies(['connection'], silent=True):
                 self.APP = self.UTILS.install(self.LOCAL_IPA)
+                if not self.APP:
+                    Log.e('Error: Couldn\'t install the app or retreive its details')
+                    return False
 
         if not self.IPA:
             self.APP_INFO = self.UTILS.get_info(self.APP_INFO['Path'], ios=True)
@@ -107,7 +119,11 @@ class IOSAnalysis(object):
 
         if self.APP and 'Container' in self.APP:
             self.IOS_DATA_PATH = self.APP['Container'].replace(' ', '\ ')
-        self.IOS_BIN_PATH = self.UTILS.app_executable(self.APP, self.APP_INFO)
+
+        if self.APP and self.APP_INFO:
+            self.IOS_BIN_PATH = self.UTILS.app_executable(self.APP, self.APP_INFO)
+
+        self.LOCAL_CLASS_DUMP = '{base}/{app}'.format(base=self.LOCAL_CLASS_DUMP, app=self.APP_INFO['CFBundleExecutable'])
 
         # get classes
         if 'Darwin' in Utils.run('uname')[0]:
@@ -170,7 +186,7 @@ class IOSAnalysis(object):
 
     def run_dynamic_checks(self):
         # launch the app
-        self.UTILS.launch_app(self.APP)
+        self.UTILS.launch_app(self.APP_INFO)
 
         issues = []
         import mat.modules.ios.dynamic
@@ -214,7 +230,7 @@ class IOSAnalysis(object):
 
         # calculate and save md5
         md5 = Utils.run('{md5sum} {ipa}'.format(md5sum=settings.md5sum, ipa=self.LOCAL_IPA))[0]
-        with open('{working}/{ipa}.md5'.format(working=self.LOCAL_BIN_FOLDER, ipa=self.IPA.rsplit('/', 1)[1]), 'w') as f:
+        with open('{working}/{ipa}.md5'.format(working=self.LOCAL_BIN_FOLDER, ipa=self.IPA.rsplit('/', 1)[-1]), 'w') as f:
             f.write(md5.split(' ', 1)[0].strip())
 
         # print app information

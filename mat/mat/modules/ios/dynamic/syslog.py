@@ -15,5 +15,5 @@ class Issue(Issue):
         result = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-E "{regex}"'.format(regex=self.REGEX))
         if result:
             self.REPORT  = True
-            self.DETAILS = self.ANALYSIS.UTILS.dump_log(self.ANALYSIS.APP['CFBundleExecutable'])
+            self.DETAILS = self.ANALYSIS.UTILS.dump_log(self.ANALYSIS.APP_INFO['CFBundleExecutable'])
 
