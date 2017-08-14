@@ -1,6 +1,6 @@
 # python modules
 from subprocess import Popen, PIPE
-from os import path
+from os import path, remove
 import traceback
 
 # launching stuff problems
@@ -27,6 +27,12 @@ class AndroidUtils(object):
 
         self.ADB.start_server()
 
+        devices = self.devices()
+        if len(devices) == 0:
+            Log.e('Error: No devices connected.')
+        settings.device = settings.device or (devices[0] if devices else None)
+        self.ADB.set_device(settings.device)
+
     ############################################################################
     #    ADB WRAPPER FUNCTIONS
     ############################################################################
@@ -44,7 +50,7 @@ class AndroidUtils(object):
         self.ADB.push(file, dest)
 
     def get_apk(self, package):
-        return self.ADB.apk(package)[:-2]
+        return self.ADB.apk(package)[:-1]
 
     def processes(self, device=None, root=True):
         device = device or settings.device
@@ -56,7 +62,6 @@ class AndroidUtils(object):
     def list_apps(self, silent=False):
         packages = self.ADB.packages()
         if silent: return packages
-
         for package in packages:
             print package
 
@@ -392,7 +397,8 @@ class ADB(object):
     def __init__(self, device=None, adb=None):
         self.DEVICE = device
         self.BIN    = adb
-        self.make_temp_folder()
+        if self.DEVICE:
+            self.make_temp_folder()
 
     def _run(self, command, shell=False):
         return Utils.run('{adb} {command}'.format(adb=self.BIN, command=command), shell=shell)
@@ -409,6 +415,7 @@ class ADB(object):
 
     def set_device(self, device):
         self.DEVICE = device
+        self.make_temp_folder()
 
     def start_server(self):
         self._run('start-server')
@@ -435,7 +442,7 @@ class ADB(object):
         return False
 
     def packages_on(self, device):
-        return [line.split('=')[1] if '=' in line else line for line in self._run_on_device('shell pm list packages -f', device=device)[0].split('\r\n')[:-1]]
+        return [line.split('=')[1].strip() if '=' in line else line for line in self._run_on_device('shell pm list packages -f', device=device)[0].split('\n')[:-1]]
 
     def packages(self):
         return self.packages_on(self.DEVICE)

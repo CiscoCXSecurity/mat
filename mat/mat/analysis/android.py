@@ -75,7 +75,7 @@ class AndroidAnalysis(object):
                 self.UTILS.install(self.WORKING_APK_FILE)
 
         elif self.PACKAGE:
-            device_apk = self.UTILS.getAPK(self.PACKAGE)
+            device_apk = self.UTILS.get_apk(self.PACKAGE)
             if not device_apk:
                 Log.e('Error: Package not found on the device')
                 return False

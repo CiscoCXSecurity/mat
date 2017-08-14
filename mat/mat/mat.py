@@ -20,19 +20,16 @@ from analysis.android import AndroidAnalysis
 from analysis.ios import IOSAnalysis
 
 """
-TODO:
- - check that the Cisco app results are the same as the old MAT results
-"""
-
-"""
 TODO LIST
 * Add interactive mode
 * Finish Cordova features check
 * Change drozer checks for manual checks (remove drozer dependency)
 * Add code obfuscation detection
+* Improve documentation
+* Update README.md
 """
 
-VERSION = '3.1.1'
+VERSION = '3.1.2'
 
 BANNER = '''
 
@@ -127,8 +124,8 @@ def clargs():
     iosparser.add_argument('-P', '--unset-proxy',      required=False, default=False, action='store_true',                     help='Unsets the proxy on iOS preferences')
 
     # specify android apps
-    androidparser.add_argument('-a', '--apk',          required=False, metavar='apk_file',                                     help='Specify the APK file to be analysed')
-    androidparser.add_argument('-i', '--package',      required=False, metavar='com.package.app',                              help='Specify the PACKAGE to be analysed')
+    androidparser.add_argument('-i', '--apk',          required=False, metavar='apk_file',                                     help='Specify the APK file to be analysed')
+    androidparser.add_argument('-a', '--package',      required=False, metavar='com.package.app',                              help='Specify the PACKAGE to be analysed')
 
     androidparser.add_argument('-s', '--static-only',  required=False, default=False, action='store_true',                     help='Perform static analysis only')
     androidparser.add_argument('-d', '--device',       required=False, metavar='device',                                       help='Specify the device to install the apk')
@@ -265,16 +262,10 @@ def run_ios():
 def run_android():
 
         androidutils = AndroidUtils()
-        devices = androidutils.devices()
         if settings.runchecks:
             androidutils.check_dependencies(['full'], silent=False)
             androidutils.clean()
             die()
-
-        if not settings.static and len(devices) == 0:
-            die('Error: No devices connected.')
-        settings.device = settings.device or (devices[0] if devices else None)
-        androidutils.set_device(settings.device)
 
         REPORT = False
         # fixes problems with APK files in same folder
@@ -285,7 +276,7 @@ def run_android():
             androidutils.list_apps()
 
         elif settings.compile:
-            androidutils.check_dependencies([['apktool'], 'signing'], silent=True)
+            androidutils.check_dependencies(['static', 'signing'], silent=True)
             androidutils.compile(settings.compile)
 
         # static only

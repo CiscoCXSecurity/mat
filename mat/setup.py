@@ -6,7 +6,7 @@ from sys import argv
 from os import getenv, path, makedirs, rename
 from shutil import copy
 
-version = '3.1.1'
+version = '3.1.2'
 file_path = path.realpath(__file__).rsplit('/', 1)[0]
 
 HOME              = getenv('HOME')

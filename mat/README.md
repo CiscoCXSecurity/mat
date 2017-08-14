@@ -4,6 +4,8 @@ Mobile Assessment Tool or MAT is a tool that automatises an Android or IOS appli
 
 The json report can be imported to XDB using the pdatool import module.
 
+Doc generated with PDOC: https://github.com/BurntSushi/pdoc
+
 ## Installation ##
 
 ```
