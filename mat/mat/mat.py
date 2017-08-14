@@ -263,7 +263,7 @@ def run_android():
 
         androidutils = AndroidUtils()
         if settings.runchecks:
-            androidutils.check_dependencies(['full'], silent=False)
+            androidutils.check_dependencies(['full'], silent=False, install=True)
             androidutils.clean()
             die()
 

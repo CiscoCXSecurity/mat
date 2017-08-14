@@ -3,7 +3,7 @@ from setuptools.command.install import install
 from setuptools.command.develop import develop
 from setuptools import setup, find_packages
 from sys import argv
-from os import getenv, path, makedirs, rename
+from os import getenv, path, makedirs, rename, chmod
 from shutil import copy
 
 version = '3.1.2'
@@ -87,6 +87,8 @@ def common(debug=False):
         if not path.exists("{lib}/{file}".format(lib=LIB_FOLDER, file=file)):
             print('[-] Failed to copy file {file} to {lib}'.format(lib=LIB_FOLDER, file=file))
             exit(0)
+        chmod("{lib}/{file}".format(lib=LIB_FOLDER, file=file), 0744)
+
 
     # copy template to place
     if path.exists(SETTINGS_FILENAME):
