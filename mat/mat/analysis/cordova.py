@@ -64,12 +64,20 @@ class CordovaAnalysis(object):
         for os in CordovaAnalysis.LATEST_VERSION:
             self.LATEST_VERSION[os] = html.split('-{os}-'.format(os=os))[1].rsplit('.', 1)[0]
 
+    def get_custom_modules(self, modules_types=['modules/cordova/static', 'modules/cordova/dynamic']):
+        found_modules = []
+        for module_type in modules_types:
+            modules = [m.replace('.py', '') for m in listdir('{local}/{type}'.format(local=settings.LOCAL_SETTINGS, type=module_type)) if not m.endswith('.pyc')]
+            for m in modules:
+                found_modules += [load_source(m, '{local}/{type}/{check}.py'.format(local=settings.LOCAL_SETTINGS, type=module_type, check=m))]
+        return found_modules
+
     def _run_custom_modules(self, module_type):
         issues = []
-        modules = [m.replace('.py', '') for m in listdir('{local}/{type}'.format(local=settings.LOCAL_SETTINGS, type=module_type)) if not m.endswith('.pyc')]
+        modules = self.get_custom_modules([module_type])
         for m in modules:
-            custom_module = load_source('check', '{local}/{type}/{check}.py'.format(local=settings.LOCAL_SETTINGS, type=module_type, check=m))
-            issue = custom_module.Issue(self)
+            Log.d('Running Static {check}'.format(check=m.__name__))
+            issue = m.Issue(self)
             if issue.dependencies():
                 issue.run()
             if issue.REPORT:

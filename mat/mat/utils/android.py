@@ -50,7 +50,7 @@ class AndroidUtils(object):
         self.ADB.push(file, dest)
 
     def get_apk(self, package):
-        return self.ADB.apk(package)[:-1]
+        return self.ADB.apk(package).strip()
 
     def processes(self, device=None, root=True):
         device = device or settings.device

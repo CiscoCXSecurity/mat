@@ -83,6 +83,10 @@ class AndroidAnalysis(object):
             self.WORKING_APK_FILE = '{working}/{package}.apk'.format(working=self.LOCAL_WORKING_FOLDER, package=self.PACKAGE)
             self.UTILS.pull(device_apk, self.WORKING_APK_FILE)
 
+        if not self.WORKING_APK_FILE or not path.exists(self.WORKING_APK_FILE):
+            Log.e('Error: Local APK file not found.')
+            return False
+
         # decompile apk
         if decompile:
             Log.w('Decompiling {apk} to {dir}'.format(apk=self.WORKING_APK_FILE, dir=self.LOCAL_DECOMPILED_APP))
@@ -111,12 +115,20 @@ class AndroidAnalysis(object):
         if settings.clean:
             Utils.rmtree(self.LOCAL_WORKING_FOLDER)
 
+    def get_custom_modules(self, modules_types=['modules/android/static', 'modules/android/dynamic']):
+        found_modules = []
+        for module_type in modules_types:
+            modules = [m.replace('.py', '') for m in listdir('{local}/{type}'.format(local=settings.LOCAL_SETTINGS, type=module_type)) if not m.endswith('.pyc')]
+            for m in modules:
+                found_modules += [load_source(m, '{local}/{type}/{check}.py'.format(local=settings.LOCAL_SETTINGS, type=module_type, check=m))]
+        return found_modules
+
     def _run_custom_modules(self, module_type):
         issues = []
-        modules = [m.replace('.py', '') for m in listdir('{local}/{type}'.format(local=settings.LOCAL_SETTINGS, type=module_type)) if not m.endswith('.pyc')]
+        modules = self.get_custom_modules([module_type])
         for m in modules:
-            custom_module = load_source('check', '{local}/{type}/{check}.py'.format(local=settings.LOCAL_SETTINGS, type=module_type, check=m))
-            issue = custom_module.Issue(self)
+            Log.d('Running Static {check}'.format(check=m.__name__))
+            issue = m.Issue(self)
             if issue.dependencies():
                 issue.run()
             if issue.REPORT:

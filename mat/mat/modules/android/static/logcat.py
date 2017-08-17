@@ -8,7 +8,7 @@ class Issue(Issue):
     DESCRIPTION = 'Checks if the application accesses content view unencrypted communications'
 
     ID          = 'unencrypted-download'
-    ISSUE_TITLE = 'Application Accesses Content Via Unencrypted Channel'
+    ISSUE_TITLE = 'Application Logs To Logcat'
     FINDINGS    = 'The Team found the application accessed the following content over unenecrypted communications:\n'
 
     def dependencies(self):

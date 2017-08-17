@@ -217,7 +217,7 @@ class IOSUtils(object):
             if not_installed:
                 self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['connection'] = False
             if not silent: Log.w('packages installed: {packages}'.format(packages=', '.join(list(set(required_packages) - not_installed))))
-            if not silent: Log.w('packages missing: {packages}'.format(packages=', '.join(list(not_installed))))
+            if not silent and not_installed: Log.w('packages missing: {packages}'.format(packages=', '.join(list(not_installed))))
 
         ########################################################################
         # STATIC DEPENDENCIES
@@ -285,7 +285,7 @@ class IOSUtils(object):
             if not_installed:
                 self.CHECKS_PASSED['proxy'] = False
             if not silent: Log.w('packages installed: {packages}'.format(packages=', '.join(list(set(required_packages) - not_installed))))
-            if not silent: Log.w('packages missing: {packages}'.format(packages=', '.join(list(not_installed))))
+            if not silent and not_installed: Log.w('packages missing: {packages}'.format(packages=', '.join(list(not_installed))))
 
 
         return all([self.CHECKS_PASSED[d] for d in self.CHECKS_PASSED if d in dependencies])
@@ -465,22 +465,22 @@ class IOSUtils(object):
         return self._list_apps_installer(silent)
 
     def _list_apps_installer(self, silent=False):
-        if self.check_dependencies(['install'], silent=True):
+        if self.check_dependencies(['install'], install=True, silent=True):
             settings.ipainstaller = self.run_on_ios('which ipainstaller')[0][:-2]
             apps_packages = self.run_on_ios('{ipainstaller} -l'.format(ipainstaller=settings.ipainstaller))[0][:-2].split('\r\n')
 
-            FOUND_APPS = uuid = {}
+            FOUND_APPS = {}
             for app in apps_packages:
                 app_details = self.run_on_ios('{ipainstaller} -i {package}'.format(ipainstaller=settings.ipainstaller, package=app))[0][:-2].split('\r\n')
-                DETAILS = {}
+                DETAILS = app_id = {}
                 for line in app_details:
                     key, value = line.split(': ', 1)
                     key  = key.replace('Application', 'Path').replace('Data', 'Container').replace('Identifier', 'CodeInfoIdentifier')
-                    if 'Bundle' in key:
-                        uuid = value.rsplit('/', 1)[-1]
+                    if 'CodeInfoIdentifier' in key:
+                        app_id = value
                     DETAILS[key] = value
-                if uuid:
-                    FOUND_APPS[uuid] = DETAILS
+                if app_id:
+                    FOUND_APPS[app_id] = DETAILS
 
             if not silent:
                 for app in FOUND_APPS:
@@ -517,17 +517,19 @@ class IOSUtils(object):
             iosapps = apps.split('\r\n')[:-1]
             iosdata = datas.split('\r\n')[:-1]
 
-            if not silent:
-                for app in iosapps:
-                    uuid, name  = app.replace(APPS_PATH, '')[1:].split('/')
-                    data        = [d for d in iosdata if name.split('.', 1)[0].lower() in d.lower()]
+            for app in iosapps:
+                uuid, name  = app.replace(APPS_PATH, '')[1:].split('/')
+                data        = [d for d in iosdata if name.split('.', 1)[0].lower() in d.lower()]
+                identifier = data[0].rsplit('/', 1)[-1] if data else None
 
-                    FOUND_APPS[uuid] = {
+                if identifier:
+                    FOUND_APPS[identifier] = {
                         'Path': '{paths}/{uuid}/{name}'.format(paths=APPS_PATH, uuid=uuid, name=name),
                         'Container': data[0].split('/Library')[0] if data else None,
-                        'CodeInfoIdentifier': data[0].rsplit('/', 1)[-1] if data else None
+                        'CodeInfoIdentifier': identifier
                     }
-                    print('{app} :\n    APP: {bin}\n    DATA: {data}'.format(app=uuid, bin=FOUND_APPS[uuid]['Path'], data=FOUND_APPS[uuid]['Container']))
+                    if not silent:
+                        print('{app} :\n    APP: {bin}\n    DATA: {data}'.format(app=identifier, bin=FOUND_APPS[identifier]['Path'], data=FOUND_APPS[identifier]['Container']))
 
         return FOUND_APPS
 

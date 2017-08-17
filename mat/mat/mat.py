@@ -26,26 +26,23 @@ TODO LIST
 * Change drozer checks for manual checks (remove drozer dependency)
 * Add code obfuscation detection
 * Improve documentation
-* Update README.md
 """
 
-VERSION = '3.1.2'
+VERSION = '3.1.3'
 
 BANNER = '''
 
-          _____           _             _ _ _
-         |  __ \         | |           | | (_)
-         | |__) |__  _ __| |_ ___ _   _| | |_ ___
-         |  ___/ _ \| '__| __/ __| | | | | | / __|
-         | |  | (_) | |  | || (__| |_| | | | \__ \\
-         |_|   \___/|_|   \__\___|\__,_|_|_|_|___/  Security
-
-                          Mobile Assessment Tool v{version}
+          __  __     _   _____
+         |  \/  |   / \ |_   _|
+         | |\/| |  / _ \  | |
+         | |  | | / ___ \ | |
+         |_|  |_|/_/   \_\|_|
+                    Mobile Assessment Tool v{version}
 
   Copyright 2017 - Portcullis, https://www.portcullis-security.com
 
   Your local settings will be under {lsettings}/mat_settings.py.
-    '''.format(version=VERSION, lsettings=settings.LOCAL_SETTINGS)
+'''.format(version=VERSION, lsettings=settings.LOCAL_SETTINGS)
 
 def find_executables():
     # system installed packages
@@ -92,7 +89,7 @@ def clargs():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=BANNER, epilog=textwrap.dedent('''\
         Example of usage:
             mat -D ios -a com.apple.TestFlight
-            mat android -a /tmp/app.apk -o /tmp/mat-output
+            mat android -i /tmp/app.apk -o /tmp/mat-output
             mat -J json_file android
         '''))
     subparsers = parser.add_subparsers(dest='type', description='Select the type of assessment')
@@ -114,7 +111,7 @@ def clargs():
     iosparser.add_argument('-k', '--no-keep',          required=False, default=False, action='store_true',                     help='Deletes the local data (decrypted binary, pulled IPA, data files, classes, etc.) once the analysis is complete')
 
     iosparser.add_argument('-r', '--run-checks',       required=False, default=False, action='store_true',                     help='Performs dependency checks for iOS')
-    iosparser.add_argument('-o', '--output',           required=False, metavar='/path/to/',                                    help='Folder to where the tool will report')
+    iosparser.add_argument('-o', '--output',           required=False, metavar='/path/to/output',                                    help='Folder to where the tool will report')
 
     # ease of use options
     iosparser.add_argument('-u', '--update-apps',      required=False, default=False, action='store_true',                     help='Update iOS applications list')
@@ -139,7 +136,7 @@ def clargs():
     androidparser.add_argument('-k', '--no-keep',      required=False, default=False, action='store_true',                     help='Deletes the decompiled APK and all data after static analysis')
 
     androidparser.add_argument('-r', '--run-checks',   required=False, default=False, action='store_true',                     help='Performs dependency checks for Android')
-    androidparser.add_argument('-o', '--output',       required=False, metavar='/path/to/',                                    help='Folder to where the tool will report')
+    androidparser.add_argument('-o', '--output',       required=False, metavar='/path/to/output',                                    help='Folder to where the tool will report')
 
     return parser.parse_args()
 
@@ -237,7 +234,8 @@ def run_ios():
         iosutils.list_apps()
 
     elif settings.runchecks:
-        iosutils.check_dependencies(['full', 'proxy'], install=True)
+        passed = iosutils.check_dependencies(['full', 'proxy'], silent=False, install=True)
+        Log.w('Checks passed: {result}'.format(result=passed))
 
     elif settings.listapps:
         iosutils.list_apps()
@@ -263,7 +261,8 @@ def run_android():
 
         androidutils = AndroidUtils()
         if settings.runchecks:
-            androidutils.check_dependencies(['full'], silent=False, install=True)
+            passed= androidutils.check_dependencies(['full'], silent=False, install=True)
+            Log.w('Checks passed: {result}'.format(result=passed))
             androidutils.clean()
             die()
 
