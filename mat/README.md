@@ -111,26 +111,31 @@ optional arguments:
 
 
 * Static analysis of Android Application and save the results to /tmp/tests/
+
 ```
 $ mat ios -s -i /tmp/myapp.apk -o /tmp/tests
 ```
 
 * Full analysis of iOS Application installed on connected the device
+
 ```
 $ mat ios -s -a com.csco.example
 ```
 
 * Listing apps installed on iOS with DEBUG enabled - show all the commands run
+
 ```
 $ mat -D ios -l
 ```
 
 * Check if all requirements are ok for android
+
 ```
 $ mat android -r
 ```
 
 * Print all the details of a previous test
+
 ```
 $ mat -J /tmp/tests/com.csco.example.json android
 ```
@@ -138,6 +143,7 @@ $ mat -J /tmp/tests/com.csco.example.json android
 ## Import Examples ##
 
 * Import mat and run requirements checks for android
+
 ```
 In [1]: import mat
 
@@ -150,6 +156,7 @@ True
 ```
 
 * Import mat and run dynamic checks on an iOS app, wirting the output to /tmp/output
+
 ```
 In [1]: import mat
 
@@ -169,6 +176,7 @@ Out[5]:
 ```
 
 * Test a specific iOS issue
+
 ```
 In [1]: import mat
 
@@ -197,6 +205,7 @@ True
 ```
 
 * Test a custom issue
+
 ```
 In [1]: import mat
 
