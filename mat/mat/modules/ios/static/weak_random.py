@@ -9,18 +9,15 @@ class Issue(Issue):
     ISSUE_TITLE = 'Application Generates Insecure Random Numbers'
     FINDINGS    = 'The Team found that the application generated insecure random numbers.'
 
-    REGEX       = r'srand|random'
+    REGEX       = r'_srand|_random'
 
     def dependencies(self):
-        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
+        return (Utils.is_osx() and self.ANALYSIS.UTILS.check_dependencies(['satic'], install=True)) or self.ANALYSIS.UTILS.check_dependencies(['dynamic'], install=True)
 
     def run(self):
-        result = Utils.grep(regex=self.REGEX, source=self.ANALYSIS.LOCAL_CLASS_DUMP, working_path=self.ANALYSIS.LOCAL_WORKING_FOLDER)
-        result[self.ANALYSIS.LOCAL_WORKING_BIN] = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-E "{regex}"'.format(regex=self.REGEX))
-        if not result[self.ANALYSIS.LOCAL_WORKING_BIN]:
-            result.pop(self.ANALYSIS.LOCAL_WORKING_BIN)
-
-        if result:
-            self.REPORT  = True
-            self.DETAILS = Utils.grep_details(result, working_path=self.ANALYSIS.LOCAL_WORKING_FOLDER)
+        symbols = Utils.symbols(self.ANALYSIS.LOCAL_WORKING_BIN) if Utils.is_osx() else self.ANALYSIS.UTILS.symbols(self.ANALYSIS.IOS_WORKING_BIN)
+        matches = re.search(REGEX, symbols)
+        if matches:
+            self.REPORT = True
+            self.DETAILS = '* {details}'.format(details='\n* '.join([match.group() for match in matches]))
 

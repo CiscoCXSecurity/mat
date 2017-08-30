@@ -65,6 +65,9 @@ class IOSUtils(object):
     def run_app(self, app_info):
         return self.run_on_ios('open {app}'.format(app=app_info['CFBundleIdentifier']))
 
+    def symbols(self, app_bin):
+        return self.run_on_ios('otool -Iv {app}'.format(app=app_bin))[0]
+
     def dump_keychain(self, dest='/tmp'):
         dest = dest.replace('\ ', ' ')
         if self.KEYCHAIN_DUMP:
@@ -87,6 +90,13 @@ class IOSUtils(object):
             return self.run_on_ios('{dumplog} {app}'.format(dumplog=self.DUMP_LOG, app=app))[0]
         else:
             Log.e('Error: No dumplog binary found - was prepare_analysis run?')
+
+    def dump_backup_flag(self, file):
+        if self.BACKUP_EXCLUDED:
+            Log.d('Dumping backup flag of {file} with {bin}'.format(bin=self.BACKUP_EXCLUDED, file=file))
+            return self.run_on_ios('{dbf} "{file}"'.format(dbf=self.BACKUP_EXCLUDED, file=file), shell=True)[0]
+        else:
+            Log.e('Error: No backup_excluded binary found - was prepare_analysis run?')
 
     def apt_install(self, package):
         return self.run_on_ios('apt-get -y install {package}'.format(package=package))

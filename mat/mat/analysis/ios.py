@@ -31,6 +31,8 @@ class IOSAnalysis(object):
 
         IOS_BIN_PATH        - Path to the binary on the device
 
+        IOS_WORKING_BIN     - Path to the working / decrypted binary on the device
+
 
         UTILS                - Object with several methods to interact with the device and app
     """
@@ -42,6 +44,7 @@ class IOSAnalysis(object):
     LOCAL_UNZIPED        = '{bins}/unziped'.format(bins=LOCAL_BIN_FOLDER)
 
     IOS_WORKING_FOLDER   = '/tmp/mat'
+    IOS_WORKING_BIN      = None
     IOS_BIN_PATH         = None
 
     def __init__(self, utils, app=None, ipa=None):
@@ -83,6 +86,7 @@ class IOSAnalysis(object):
             self.UTILS.push(settings.dump_decrypt, self.IOS_WORKING_FOLDER)
             self.UTILS.push(settings.class_dump, self.IOS_WORKING_FOLDER)
             self.UTILS.push(settings.keychain_dump, self.IOS_WORKING_FOLDER)
+            self.UTILS.push(settings.backup_excluded, self.IOS_WORKING_FOLDER)
 
             # update binary paths
             self.UTILS.DUMP_DECRYPT      = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.dump_decrypt.rsplit('/', 1)[1])
@@ -90,6 +94,7 @@ class IOSAnalysis(object):
             self.UTILS.DUMP_FILE_PROTECT = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.dump_fileprot.rsplit('/', 1)[1])
             self.UTILS.DUMP_LOG          = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.dump_log.rsplit('/', 1)[1])
             self.UTILS.CLASS_DUMP        = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.class_dump.rsplit('/', 1)[1])
+            self.UTILS.BACKUP_EXCLUDED   = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.backup_excluded.rsplit('/', 1)[1])
 
         if self.APP: # no need to check if there's connection - it will return None if there's no connection
             apps = self.UTILS.list_apps(silent=True)
@@ -116,6 +121,11 @@ class IOSAnalysis(object):
             UNZIPED_APP, self.APP_INFO = self.UTILS.unzip_to(self.LOCAL_IPA, self.LOCAL_UNZIPED)
             if not hasattr(self, 'LOCAL_WORKING_BIN'):
                 self.LOCAL_WORKING_BIN = '{app}/{binary}'.format(app=UNZIPED_APP, binary=self.APP_INFO['CFBundleExecutable'])
+
+        # copy working bin to the device:
+        if not hasattr(self, 'LOCAL_WORKING_BIN') and self.UTILS.check_dependencies(['connection'], silent=True):
+            self.IOS_WORKING_BIN = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=self.APP_INFO['CFBundleExecutable'])
+            self.UTILS.push(self.LOCAL_WORKING_BIN, self.IOS_WORKING_FOLDER)
 
         if self.APP and 'Container' in self.APP:
             self.IOS_DATA_PATH = self.APP['Container'].replace(' ', '\ ')
@@ -160,6 +170,8 @@ class IOSAnalysis(object):
             issue = m.Issue(self)
             if issue.dependencies():
                 issue.run()
+            else:
+                Log.e('Error: Dependencies not met.')
             if issue.REPORT:
                 issues += [issue]
 
@@ -184,6 +196,8 @@ class IOSAnalysis(object):
             issue = check_module.Issue(self)
             if issue.dependencies():
                 issue.run()
+            else:
+                Log.e('Error: Dependencies not met.')
             if issue.REPORT:
                 issues += [issue]
 
@@ -205,6 +219,8 @@ class IOSAnalysis(object):
             issue = check_module.Issue(self)
             if issue.dependencies():
                 issue.run()
+            else:
+                Log.e('Error: Dependencies not met.')
             if issue.REPORT:
                 issues += [issue]
 

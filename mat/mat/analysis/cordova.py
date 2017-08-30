@@ -80,6 +80,8 @@ class CordovaAnalysis(object):
             issue = m.Issue(self)
             if issue.dependencies():
                 issue.run()
+            else:
+                Log.e('Error: Dependencies not met.')
             if issue.REPORT:
                 issues += [issue]
 
@@ -108,6 +110,8 @@ class CordovaAnalysis(object):
             issue = check_module.Issue(self)
             if issue.dependencies():
                 issue.run()
+            else:
+                Log.e('Error: Dependencies not met.')
             if issue.REPORT:
                 issues += [issue]
 

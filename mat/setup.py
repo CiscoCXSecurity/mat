@@ -6,7 +6,7 @@ from sys import argv
 from os import getenv, path, makedirs, rename, chmod
 from shutil import copy
 
-version = '3.1.3'
+version = '3.1.4'
 file_path = path.realpath(__file__).rsplit('/', 1)[0]
 
 HOME              = getenv('HOME')
@@ -26,7 +26,7 @@ LIB_FILES         = [
     'jd-cli.jar', 'scptoios', 'signing/cert.x509.pem', 'signing/key.pk8',
     'signing/signapk.jar', 'sshios', 'tcprelay.py', 'usbmux.py',
     'class-dump', 'class-dump-macos', 'scpfromios', 'keychain_dump',
-    'drozer-agent.apk', 'bb-bins.zip'
+    'drozer-agent.apk', 'bb-bins.zip', 'backup_excluded'
 ]
 
 MODULES = [

@@ -132,6 +132,14 @@ class Utils:
         return None
 
     @staticmethod
+    def is_osx():
+        return 'Darwin' in Utils.run('uname')[0]
+
+    @staticmethod
+    def symbols(app_bin):
+        return Utils.run('otool -Iv {app}'.format(app=app_bin))[0]
+
+    @staticmethod
     def rmtree(top=None):
         if not top:
             return False
