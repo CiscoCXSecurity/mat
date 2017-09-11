@@ -23,6 +23,6 @@ class Issue(Issue):
             #self.REPORT = True
 
         symbols = Utils.symbols(self.ANALYSIS.LOCAL_WORKING_BIN) if Utils.is_osx() else self.ANALYSIS.UTILS.symbols(self.ANALYSIS.IOS_WORKING_BIN)
-        if not re.search(REGEX, symbols):
+        if not re.search(self.REGEX, symbols):
             self.REPORT = True
 

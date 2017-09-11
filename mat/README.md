@@ -6,6 +6,12 @@ The json report can be imported to XDB using the mat import module.
 
 [Imcomplete] Documentation generated with PDOC: https://github.com/BurntSushi/pdoc
 
+## Requirements ##
+
+* java
+
+* plutil (if on a mac) or iOS device with plutil
+
 ## Installation ##
 
 ```
@@ -32,7 +38,7 @@ usage: mat [-h] [-S] [-D] [-J file] {ios,android} ...
          | |\/| |  / _ \  | |
          | |  | | / ___ \ | |
          |_|  |_|/_/   \_\|_|
-                    Mobile Assessment Tool v3.1.3
+                    Mobile Assessment Tool v3.1.5
 
   Copyright 2017 - Portcullis, https://www.portcullis-security.com
 

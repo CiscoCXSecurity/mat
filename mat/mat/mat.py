@@ -28,7 +28,7 @@ TODO LIST
 * Improve documentation
 """
 
-VERSION = '3.1.4'
+VERSION = '3.1.5'
 
 BANNER = '''
 
@@ -211,8 +211,8 @@ def run_ios():
     iosutils = IOSUtils()
     iosutils.start_tcp_relay()
 
-    if not iosutils.check_dependencies(['connection'], True):
-        die('Error: No connection to the device.')
+    #if not iosutils.check_dependencies(['connection'], True):
+        #Log.e('Error: No connection to the device.')
 
     if settings.install:
         iosutils.install(settings.install)
@@ -242,7 +242,10 @@ def run_ios():
 
     elif settings.app or settings.ipa:
         iosanalysis = IOSAnalysis(utils=iosutils, app=settings.app, ipa=settings.ipa)
-        settings.results = iosanalysis.run_analysis()
+        if settings.static:
+            settings.results = iosanalysis.run_static_checks()
+        else:
+            settings.results = iosanalysis.run_analysis()
 
         if not settings.SILENT:
             Report.report_to_terminal()

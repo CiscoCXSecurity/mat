@@ -13,12 +13,13 @@ class Issue(Issue):
         return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
 
     def run(self):
-        if ('NSAppTransportSecurity' in self.ANALYSIS.APP_INFO and 'NSAllowsArbitraryLoads' in self.ANALYSIS.APP_INFO['NSAppTransportSecurity']
-            and self.ANALYSIS.APP_INFO['NSAppTransportSecurity']['NSAllowsArbitraryLoads']) or 'NSAppTransportSecurity' not in self.ANALYSIS.APP_INFO:
-            self.REPORT  = True
-            self.DETAILS = '\n<code>\n    <key>NSAppTransportSecurity</key>\n    <dict>\n        <key>NSAllowsArbitraryLoads</key>\n        <true/>\n    </dict>\n</code>'
+        ats = self.ANALYSIS.UTILS.dict_key_to_xml(self.ANALYSIS.APP_INFO, 'NSAppTransportSecurity')
+        if 'NSAppTransportSecurity' not in self.ANALYSIS.APP_INFO:
+            self.DETAILS  = ''
+            self.FINDINGS = 'The Team found that ATS was not active on the application.'
+            self.REPORT   = True
 
-            if 'NSAppTransportSecurity' not in self.ANALYSIS.APP_INFO:
-                self.DETAILS  = ''
-                self.FINDINGS = 'The Team found that ATS was not active on the application.'
+        elif 'NSAllowsArbitraryLoads' in ats or 'NSExceptionAllowsInsecureHTTPLoads' in ats or 'NSThirdPartyExceptionAllowsInsecureHTTPLoads' in ats:
+            self.REPORT  = True
+            self.DETAILS = '\n<code>\n{plist}\n</code>'.format(plist=ats)
 

@@ -6,7 +6,7 @@ class Issue(Issue):
     DESCRIPTION = 'Checks if the cordova framework contains imcomplete code'
 
     ID          = 'incomplete-code'
-    ISSUE_TITLE = 'Application Cordova Vramework Contains Incomplete Code'
+    ISSUE_TITLE = 'Application Cordova Framework Contains Incomplete Code'
     FINDINGS    = 'The Team found that the Cordova framework contained incomplete code:\n'
 
     def dependencies(self):

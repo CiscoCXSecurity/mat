@@ -16,7 +16,7 @@ class Issue(Issue):
 
     def run(self):
         symbols = Utils.symbols(self.ANALYSIS.LOCAL_WORKING_BIN) if Utils.is_osx() else self.ANALYSIS.UTILS.symbols(self.ANALYSIS.IOS_WORKING_BIN)
-        matches = re.search(REGEX, symbols)
+        matches = re.search(self.REGEX, symbols)
         if matches:
             self.REPORT = True
             self.DETAILS = '* {details}'.format(details='\n* '.join([match.group() for match in matches]))

@@ -6,7 +6,7 @@ class Issue(Issue):
     DESCRIPTION = 'Checks if the cordova framework contains open origin extensions'
 
     ID          = 'open-origin'
-    ISSUE_TITLE = 'Application\'s Cordova Extensions Have Open Origin'
+    ISSUE_TITLE = 'Application Cordova Extensions Have Open Origin'
     FINDINGS    = 'The Team found that the Cordova framework in use contained open origin extensions:\n'
 
     def dependencies(self):

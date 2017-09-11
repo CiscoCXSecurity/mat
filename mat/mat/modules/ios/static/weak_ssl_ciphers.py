@@ -1,15 +1,17 @@
+import re
+
 from mat.utils.utils import Utils, Issue
 
 class Issue(Issue):
 
-    TITLE       = 'Weak Random Check'
-    DESCRIPTION = 'Checks if the application uses weak random generation functions [NOT RELIABLE]'
+    TITLE       = 'Weak SSL Ciphers Check'
+    DESCRIPTION = 'Checks if the application uses weak ssl ciphers'
 
-    ID          = 'weak-random'
-    ISSUE_TITLE = 'Application Generates Insecure Random Numbers'
-    FINDINGS    = 'The Team found that the application generated insecure random numbers.'
+    ID          = 'ssl-ciphers'
+    ISSUE_TITLE = 'Application Uses Weak SSL Ciphers'
+    FINDINGS    = 'The Team found the application used weak SSL ciphers:'
 
-    REGEX       = r'_srand|_random'
+    REGEX       = r'kCFStreamSocketSecurityLevel|kSSLProtocol|kTLSProtocol|kDTLSProtocol|SSLCipherSuite'
 
     def dependencies(self):
         return (Utils.is_osx() and self.ANALYSIS.UTILS.check_dependencies(['satic'], install=True)) or self.ANALYSIS.UTILS.check_dependencies(['dynamic'], install=True)
@@ -20,4 +22,3 @@ class Issue(Issue):
         if matches:
             self.REPORT = True
             self.DETAILS = '* {details}'.format(details='\n* '.join([match.group() for match in matches]))
-

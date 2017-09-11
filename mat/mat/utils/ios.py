@@ -614,8 +614,13 @@ class IOSUtils(object):
         import plistlib
         return plistlib.writePlistToString(text)
 
-    def plist_to_dict(self, text=None):
-        if not text: return {}
-
+    def plist_to_dict(self, text):
         import plistlib
         return plistlib.readPlistFromString(text)
+
+    def dict_key_to_xml(self, plist, key):
+        if key not in plist: return ''
+
+        import plistlib
+        xml = plistlib.writePlistToString({key: plist[key]})
+        return '\n'.join(xml.split('\n')[3:-2])

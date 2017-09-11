@@ -67,7 +67,7 @@ class AndroidAnalysis(object):
 
         if self.WORKING_APK_FILE:
             original = self.WORKING_APK_FILE
-            self.WORKING_APK_FILE = '{working}/{apk}'.format(working=self.LOCAL_WORKING_FOLDER, apk=self.WORKING_APK_FILE.rsplit('/', 1)[1])
+            self.WORKING_APK_FILE = '{working}/{apk}'.format(working=self.LOCAL_WORKING_FOLDER, apk=self.WORKING_APK_FILE.rsplit('/', 1)[-1])
             Utils.run('cp {oapk} {apk}'.format(oapk=original, apk=self.WORKING_APK_FILE))
 
             if self.UTILS.device():

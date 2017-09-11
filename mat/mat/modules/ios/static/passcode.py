@@ -3,14 +3,14 @@ from mat.utils.utils import Utils, Issue
 
 class Issue(Issue):
 
-    TITLE       = 'ARC Support Check'
-    DESCRIPTION = 'Looks at the application for automatic reference count support'
+    TITLE       = 'Passcode Set Check'
+    DESCRIPTION = 'Checks if the application checks if the device passcode is set'
 
-    ID          = 'arc-support'
-    ISSUE_TITLE = 'Application Does Not Use ARC APIs'
-    FINDINGS    = 'The Team found that the application did not use ARC APIs.'
+    ID          = 'passcode'
+    ISSUE_TITLE = 'Application Does Not Check If Device Passcode Is Set'
+    FINDINGS    = 'The Team found that the application did not check id a device passcode was set.'
 
-    REGEX       = r'_objc_init|_objc_load|_objc_store|_objc_move|_objc_copy|_objc_retain|_objc_unretain|_objc_release|_objc_autorelease'
+    REGEX       = r'NPasscodeStatus|DeviceOwnerAuthentication'
 
     def dependencies(self):
         return (Utils.is_osx() and self.ANALYSIS.UTILS.check_dependencies(['satic'], install=True)) or self.ANALYSIS.UTILS.check_dependencies(['dynamic'], install=True)
