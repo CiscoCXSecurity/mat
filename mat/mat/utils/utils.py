@@ -166,7 +166,7 @@ class Utils:
     @staticmethod
     def grep(regex, source, working_path=None, ignore_case=None):
         working_path = working_path or source
-        return Utils.grep_command('-aRE{case}n "{regex}" {src}'.format(regex=regex, src=source, case=('i' if ignore_case else '')), working_path)
+        return Utils.grep_command('-arE{case}n "{regex}" {src}'.format(regex=regex, src=source, case=('i' if ignore_case else '')), working_path)
 
     @staticmethod
     def multiple_grep(*greps):

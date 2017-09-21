@@ -368,9 +368,9 @@ class AndroidUtils(object):
                     self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['avd'] = False
                 if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
 
-            if install and settings.avd not in self.avds():
+            if self.CHECKS_PASSED['avd'] and install and settings.avd not in self.avds():
                 self.create_avd()
-            if settings.avd not in self.avds():
+            if self.CHECKS_PASSED['avd'] and settings.avd not in self.avds():
                 self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['avd'] = False
             if not silent: Log.w('AVD {name} Found: {found}'.format(name=settings.avd, found=self.CHECKS_PASSED['avd']))
 

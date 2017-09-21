@@ -8,7 +8,7 @@ class Issue(Issue):
     DESCRIPTION = 'Checks if SSL Pinning is not implemented'
 
     ID          = 'ssl-pinning'
-    ISSUE_TITLE = 'Application Does Not Implemented SSL Pinning'
+    ISSUE_TITLE = 'Application Does Not Implement SSL Pinning'
     FINDINGS    = 'The Team found the application did not implement SSL Pinning'
 
     def dependencies(self):

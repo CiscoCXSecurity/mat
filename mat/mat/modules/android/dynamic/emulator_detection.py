@@ -62,7 +62,7 @@ class Issue(Issue):
 
         Log.d('Checking for code that references to emulator checks')
         self.DETAILS = ''
-        result = Utils.grep_command('-aRin -e "generic.*Build\.FINGERPRINT" -e "Build\.FINGERPRINT.*generic -e "sdk.*Build\.PRODUCT" -e "Build\.PRODUCT.*sdk" -e "Secure\.ANDROID_ID" -e "getSensorList" {src}'.format(src=self.ANALYSIS.LOCAL_SOURCE), self.ANALYSIS.LOCAL_SOURCE)
+        result = Utils.grep_command('-arin -e "generic.*Build\.FINGERPRINT" -e "Build\.FINGERPRINT.*generic -e "sdk.*Build\.PRODUCT" -e "Build\.PRODUCT.*sdk" -e "Secure\.ANDROID_ID" -e "getSensorList" {src}'.format(src=self.ANALYSIS.LOCAL_SOURCE), self.ANALYSIS.LOCAL_SOURCE)
         if result:
             self.DETAILS += Utils.grep_details(result, self.ANALYSIS.LOCAL_SOURCE)
             self.REPORT = True

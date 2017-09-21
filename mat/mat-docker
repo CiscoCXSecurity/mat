@@ -1,0 +1,114 @@
+#!/bin/bash
+
+msg() {
+    echo -e "\033[1m${@}\033[0m"
+}
+
+errmsg() {
+    echo -e "\033[5m\033[31mError: ${@}\033[0m"
+}
+
+MACHINE_NAME="default"
+CONTAINER_NAME="mat-container"
+IMAGE_NAME="mat-docker"
+
+machine-running() {
+    docker-machine status $MACHINE_NAME | grep Running > /dev/null
+}
+
+start-machine() {
+    docker-machine start $MACHINE_NAME
+}
+
+container-running() {
+    docker container ls -a | grep $CONTAINER_NAME | grep Up > /dev/null
+}
+
+container-exists() {
+    docker container ls -a | grep $CONTAINER_NAME > /dev/null
+}
+
+create-container() {
+    docker run --privileged -v /dev/bus/usb:/dev/bus/usb --name $CONTAINER_NAME -d -t $IMAGE_NAME > /dev/null
+}
+
+delete-all-containers() {
+    for c in $(docker container ls -a | cut -d ' ' -f1 | tail -n +2); do docker stop $c && docker rm $c; done
+}
+
+delete-all-images() {
+    for i in $(docker image ls -a -q); do docker image rm $i; done
+}
+
+start-containter() {
+    docker start $CONTAINER_NAME
+}
+
+run-mat() {
+    docker exec -it $CONTAINER_NAME $@
+}
+
+shell() {
+    docker exec -it $CONTAINER_NAME /bin/bash
+}
+
+pull() {
+    docker cp $CONTAINER_NAME:$1 $2
+}
+
+push() {
+    docker cp $1 $CONTAINER_NAME:$2
+}
+
+help() {
+    echo "Usage: $0 [help|shell|push|pull|mat]"
+    echo "Options:"
+    echo "  shell               drops a shell in the container"
+    echo "  push local remote   pushes a local file/folder to the remote container"
+    echo "  pull remote local   pulls a local file/folder from the remote container"
+    echo "  mat                 runs the mat command on the container"
+}
+
+main () {
+
+    if [ $1 == "help" ]; then
+        help
+        return 1
+    fi
+    # check if docker machine on
+    msg "Checking docker machine... "
+    { machine-running || start-machine; } || return 1
+
+    msg "Changing Docker env... "
+    eval $(docker-machine env $MACHINE_NAME)
+
+    msg "Checking mat container... "
+    if container-exists ; then
+        if ! container-running ; then
+            msg "Starting mat container... "
+            start-containter || return 1
+        fi
+    else
+        msg "Creating mat container... "
+        create-container || return 1
+    fi
+
+    if [ $1 == "shell" ]; then
+        shell
+    elif [ $1 == "rmi" ]; then
+        delete-all-images
+    elif [ $1 == "rm" ]; then
+        delete-all-containers
+    elif [ $1 == "pull" ]; then
+        pull $2 $3
+    elif [ $1 == "push" ]; then
+        push $2 $3
+    elif [ $1 == "mat" ]; then
+        run-mat $@
+    fi
+
+    msg "Deactivating Docker env... "
+    eval $(docker-machine env -u)
+}
+
+main $@

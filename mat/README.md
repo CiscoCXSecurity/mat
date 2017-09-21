@@ -28,6 +28,29 @@ By default several checks are already in place but custom checks can also be add
 
 A template of all the settings that can be changed is already in place at the location mentioned above.
 
+## Docker Requirements ##
+
+* Docker
+
+* VBoxManage
+
+* VirtualBox Extension Pack
+
+## Docker Installation ##
+
+This will create the docker-machine as well as the `docker-mat` image for the container:
+```
+./setup.sh
+```
+
+## Run MAT on Docker ##
+
+```
+./mat-docker push /tmp/myapp.apk /tmp/myapp.apk # pushes the local apk to test to the container
+./mat-docker mat android -i /tmp/myapp.apk -o /tmp/mat-out # example of a mat run - check Usage for more examples
+./mat-docker pull /tmp/mat-out # pull the results from MAT to the localhost
+```
+
 ## Usage ##
 
 ```

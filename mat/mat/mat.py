@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 
 # system modules
-from json import loads
-from sys import argv, exit, path, stdin
-from os import getenv, makedirs
-from os.path import exists
-import argparse
+from json import loads as _loads
+from sys import path as _path
+from os import makedirs as _makedirs
+from os.path import exists as _exists
+import argparse as _argparse
 
 #local modules
 from utils import settings
-from utils.utils import Utils, Log, die
+from utils.utils import Utils, Log, die as _die
 from utils.android import AndroidUtils, ADB
 from utils.ios import IOSUtils
-from utils.report import Report, ReportIssue
+from utils.report import Report, ReportIssue as _ReportIssue
 
 # android imports
 from analysis.android import AndroidAnalysis
@@ -28,9 +28,9 @@ TODO LIST
 * Improve documentation
 """
 
-VERSION = '3.1.5'
+_VERSION = '3.1.5'
 
-BANNER = '''
+_BANNER = '''
 
           __  __     _   _____
          |  \/  |   / \ |_   _|
@@ -42,9 +42,9 @@ BANNER = '''
   Copyright 2017 - Portcullis, https://www.portcullis-security.com
 
   Your local settings will be under {lsettings}/mat_settings.py.
-'''.format(version=VERSION, lsettings=settings.LOCAL_SETTINGS)
+'''.format(version=_VERSION, lsettings=settings.LOCAL_SETTINGS)
 
-def find_executables():
+def _find_executables():
     # system installed packages
     settings.find        = Utils.run('which find')[0].split('\n')[0]
     settings.file        = Utils.run('which file')[0].split('\n')[0]
@@ -68,8 +68,8 @@ def find_executables():
     # ios plutil for plist files
     settings.plutil      = Utils.run('which plutil')[0].split('\n')[0]
 
-def merge_settings():
-    path.append(settings.LOCAL_SETTINGS)
+def _merge_settings():
+    _path.append(settings.LOCAL_SETTINGS)
     try:
         import mat_settings
 
@@ -84,9 +84,9 @@ def merge_settings():
     except ImportError:
         Log.e('Local settings not imported.')
 
-def clargs():
+def _clargs():
     import textwrap
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=BANNER, epilog=textwrap.dedent('''\
+    parser = _argparse.ArgumentParser(formatter_class=_argparse.RawDescriptionHelpFormatter, description=_BANNER, epilog=textwrap.dedent('''\
         Example of usage:
             mat -D ios -a com.apple.TestFlight
             mat android -i /tmp/app.apk -o /tmp/mat-output
@@ -140,8 +140,8 @@ def clargs():
 
     return parser.parse_args()
 
-def parse_arguments():
-    args = clargs()
+def _parse_arguments():
+    args = _clargs()
 
     # main args
     settings.SILENT      = args.silent or settings.SILENT
@@ -181,11 +181,11 @@ def parse_arguments():
         settings.package = args.package
         settings.compile = args.compile
 
-def run_ios():
+def _run_ios():
     if settings.modify:
         binary, find, replace = settings.modify
-        if not exists(binary):
-            die('Error: {file} not found'.format(file=binary))
+        if not _exists(binary):
+            _die('Error: {file} not found'.format(file=binary))
 
         Log.w('Modifying: {bin}'.format(bin=binary))
 
@@ -193,10 +193,10 @@ def run_ios():
             content = f.read()
 
         if find.decode('hex') not in content:
-            die('Error: String {find} not found in the file'.format(find=find))
+            _die('Error: String {find} not found in the file'.format(find=find))
 
         if content.find(find.decode('hex')) != content.rfind(find.decode('hex')):
-            die('Error: More than one instance of {find} was found.'.format(find=find))
+            _die('Error: More than one instance of {find} was found.'.format(find=find))
 
         Log.w('Backing up file to {file}.bk'.format(file=binary))
         with open('{file}.bk'.format(file=binary), 'w') as f:
@@ -219,13 +219,13 @@ def run_ios():
 
     elif settings.unproxy:
         if not iosutils.check_dependencies(['proxy'], True, True):
-            die('Error: Missing dependency - activator.')
+            _die('Error: Missing dependency - activator.')
 
         iosutils.set_proxy()
 
     elif settings.proxy:
         if not iosutils.check_dependencies(['proxy'], True, True):
-            die('Error: Missing dependency - activator.')
+            _die('Error: Missing dependency - activator.')
 
         iosutils.set_proxy(settings.proxy[0], int(settings.proxy[1]))
 
@@ -251,23 +251,23 @@ def run_ios():
             Report.report_to_terminal()
 
         if settings.results:
-            if not exists(settings.output):
-                makedirs(settings.output)
+            if not _exists(settings.output):
+                _makedirs(settings.output)
             Report.report_to_json(iosanalysis.APP_INFO['CFBundleExecutable'])
 
     else:
-        die('Error: No IPA or APP specified.')
+        _die('Error: No IPA or APP specified.')
 
     iosutils.stop_tcp_relay()
 
-def run_android():
+def _run_android():
 
         androidutils = AndroidUtils()
         if settings.runchecks:
             passed= androidutils.check_dependencies(['full'], silent=False, install=True)
             Log.w('Checks passed: {result}'.format(result=passed))
             androidutils.clean()
-            die()
+            _die()
 
         REPORT = False
         # fixes problems with APK files in same folder
@@ -297,7 +297,7 @@ def run_android():
             elif settings.apk or settings.package:
 
                 if not androidutils.online(settings.device):
-                    die('Error: Device {device} not found online'.format(device=settings.device))
+                    _die('Error: Device {device} not found online'.format(device=settings.device))
 
                 androidanalysis = AndroidAnalysis(androidutils, apk=settings.apk, package=settings.package)
                 settings.results = androidanalysis.run_analysis()
@@ -306,7 +306,7 @@ def run_android():
 
             else:
                 androidutils.clean()
-                die('Error: No APK or Package specified.')
+                _die('Error: No APK or Package specified.')
 
         androidutils.clean()
 
@@ -314,44 +314,43 @@ def run_android():
             Report.report_to_terminal()
 
         if REPORT and settings.results:
-            if not exists(settings.output):
-                makedirs(settings.output)
+            if not _exists(settings.output):
+                _makedirs(settings.output)
             Report.report_to_json(androidanalysis.PACKAGE)
 
-def run():
+def _run():
     import traceback
 
     if settings.jsonprint:
         with open(settings.jsonprint, 'r') as f:
-            for i in loads(f.read())['issues']:
-                issue = ReportIssue.load(i)
+            for i in _loads(f.read())['issues']:
+                issue = _ReportIssue.load(i)
                 issue.print_issue()
-        exit(0)
 
-    if settings.type == 'ios':
+    elif settings.type == 'ios':
         try:
-            run_ios()
+            _run_ios()
         except Exception as e:
             Log.d(traceback.format_exc())
-            die('Error: {error}'.format(error=e))
+            _die('Error: {error}'.format(error=e))
 
     elif settings.type == 'android':
         try:
-            run_android()
+            _run_android()
         except Exception as e:
             Log.d(traceback.format_exc())
-            die('Error: {error}'.format(error=e))
+            _die('Error: {error}'.format(error=e))
 
 
 def main():
-    parse_arguments()
-    run()
+    _parse_arguments()
+    _run()
 
-def default():
-    find_executables()
-    merge_settings()
+def _default():
+    _find_executables()
+    _merge_settings()
 
-default()
+_default()
 if __name__ == '__main__':
     main()
 
