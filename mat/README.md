@@ -32,6 +32,8 @@ A template of all the settings that can be changed is already in place at the lo
 
 * Docker
 
+* VirtualBox
+
 * VBoxManage
 
 * VirtualBox Extension Pack

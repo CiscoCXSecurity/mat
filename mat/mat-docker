@@ -45,6 +45,7 @@ start-containter() {
 }
 
 run-mat() {
+    docker exec -it $CONTAINER_NAME usbmuxd
     docker exec -it $CONTAINER_NAME $@
 }
 
@@ -71,10 +72,11 @@ help() {
 
 main () {
 
-    if [ $1 == "help" ]; then
+    if [ "$#" -eq 0 ] || [ $1 == "help" ] ; then
         help
         return 1
     fi
+
     # check if docker machine on
     msg "Checking docker machine... "
     { machine-running || start-machine; } || return 1

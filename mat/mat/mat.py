@@ -28,7 +28,7 @@ TODO LIST
 * Improve documentation
 """
 
-_VERSION = '3.1.5'
+_VERSION = '3.1.6'
 
 _BANNER = '''
 
@@ -258,7 +258,7 @@ def _run_ios():
     else:
         _die('Error: No IPA or APP specified.')
 
-    iosutils.stop_tcp_relay()
+    iosutils.clean()
 
 def _run_android():
 

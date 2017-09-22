@@ -556,6 +556,8 @@ class IOSUtils(object):
     def stop_tcp_relay(self):
         if hasattr(settings, 'tcprelay_process'):
             settings.tcprelay_process.kill()
+            if 'tcprelay' in Utils.run('ps')[0]:
+                Utils.run("kill -9 $(ps a | grep tcprelay.py | grep -v grep | awk '{print $1}')")
 
     def file_exists(self, file):
         file = file.replace('\ ', ' ')
