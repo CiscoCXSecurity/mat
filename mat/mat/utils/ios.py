@@ -40,6 +40,7 @@ class IOSUtils(object):
         Log.d('Running on iOS: {cmd}'.format(cmd=cmd))
 
         try:
+            cmd = cmd.replace("\ ", " ") # fix for backslashes
             full_cmd = '{ssh} \'{cmd}\''.format(ssh=settings.ssh_ios, cmd=cmd) if shell else [settings.ssh_ios, cmd]
             Log.d('Full command: {cmd}'.format(cmd=full_cmd))
 
@@ -242,7 +243,11 @@ class IOSUtils(object):
             if 'Darwin' not in Utils.run('uname')[0]:
                 if install and not self.run_on_ios('which Clutch2')[0][:-2]:
                     if not silent: Log.w('Trying to install missing tools')
-                    self.apt_install('com.iphonecake.clutch2')
+                    self.apt_install('curl')
+                    self.run_on_ios('curl -ksL "http://cydia.iphonecake.com/Clutch2.0.4.deb" -o /tmp/kill.deb')
+                    self.run_on_ios('dpkg -i /tmp/kill.deb && rm -f /tmp/kill.deb')
+                    self.run_on_ios('killall -HUP SpringBoard')
+                    self.run_on_ios('chmod +x /usr/bin/Clutch2')
 
                 clutch = self.run_on_ios('which Clutch2')[0][:-2]
                 if not clutch:

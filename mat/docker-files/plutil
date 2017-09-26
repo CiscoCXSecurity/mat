@@ -1,0 +1,27 @@
+#! /bin/bash
+file=${!#}
+
+convert_to_xml() {
+    if ! grep "<?xml" "$file" &> /dev/null ; then
+        /usr/bin/plistutil -i "$file" -o "$file"
+    fi
+}
+
+convert_to_binary() {
+    if grep "<?xml" "$file" &> /dev/null; then
+        /usr/bin/plistutil -i "$file" -o "$file"
+    fi
+}
+
+while test $# -gt 0
+do
+    case "$1" in
+        xml1) convert_to_xml
+            ;;
+        binary1) convert_to_binary
+            ;;
+    esac
+    shift
+done
+
+exit 0

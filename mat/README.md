@@ -53,6 +53,17 @@ This will create the docker-machine as well as the `docker-mat` image for the co
 ./mat-docker pull /tmp/mat-out # pull the results from MAT to the localhost
 ```
 
+## IMPORTANT INFO ON DOCKER ##
+
+The first time you run MAT on docker or any host the device (both android and ios) will not trust the host so make sure you accept the pop-ups on the connect device.
+
+You can, e.g., run the requirements check:
+
+```
+./mat-docker mat ios -r
+./mat-docker mat android -r
+```
+
 ## Usage ##
 
 ```

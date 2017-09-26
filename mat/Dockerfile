@@ -23,8 +23,8 @@ ENV PATH $PATH:$JAVA_HOME/bin
 RUN mkdir -m 0750 /root/.android
 ADD docker-files/adbkey /root/.android/adbkey
 ADD docker-files/adbkey.pub /root/.android/adbkey.pub
+ADD docker-files/plutil /usr/bin/plutil
 
-#RUN /root/.android/update-android-tools.sh
 
 RUN wget -q https://dl.google.com/android/repository/platform-tools_r26.0.0-linux.zip -P /tmp && \
     unzip /tmp/platform-tools_r26.0.0-linux.zip -d /android-sdk
@@ -38,6 +38,5 @@ ADD . /mat
 
 # install mat
 WORKDIR /mat
-RUN ln -s /usr/bin/plistutil /usr/bin/plutil && \
-    python /mat/setup.py install && \
+RUN python /mat/setup.py install && \
     adb start-server
