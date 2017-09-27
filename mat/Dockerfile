@@ -12,7 +12,8 @@ RUN apt-get -q -y update && \
     apt-get install -q -y wget git unzip \
       openjdk-8-jre-headless \
       python-dev python-pip \
-      expect usbmuxd libplist-utils
+      expect libplist-utils \
+      usbmuxd libusbmuxd-tools libimobiledevice-utils usbutils
 
 ENV JAVA_HOME /usr/lib/jvm/openjdk-8
 ENV PATH $PATH:$JAVA_HOME/bin
@@ -24,7 +25,6 @@ RUN mkdir -m 0750 /root/.android
 ADD docker-files/adbkey /root/.android/adbkey
 ADD docker-files/adbkey.pub /root/.android/adbkey.pub
 ADD docker-files/plutil /usr/bin/plutil
-
 
 RUN wget -q https://dl.google.com/android/repository/platform-tools_r26.0.0-linux.zip -P /tmp && \
     unzip /tmp/platform-tools_r26.0.0-linux.zip -d /android-sdk
@@ -38,5 +38,6 @@ ADD . /mat
 
 # install mat
 WORKDIR /mat
-RUN python /mat/setup.py install && \
+RUN chmod +x /usr/bin/plutil && \
+    python /mat/setup.py install && \
     adb start-server

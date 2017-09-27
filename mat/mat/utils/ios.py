@@ -555,14 +555,17 @@ class IOSUtils(object):
 
     def start_tcp_relay(self):
         if not hasattr(settings, 'tcprelay_process'):
-            settings.tcprelay_process = Utils.run('{cmd} -t 22:2222'.format(cmd=settings.tcprelay), True, True)
+            #settings.tcprelay_process = Utils.run('{cmd} -t 22:2222'.format(cmd=settings.tcprelay), True, True)
+            if not path.exists('/var/run/usbmuxd.pid'):
+                Utils.run('usbmuxd', shell=True)
+                Log.w('Please press Trust on your device within the next 10 seconds')
+                sleep(10)
+            settings.tcprelay_process = Utils.run('iproxy 2222 22', True, True)
             sleep(1) # tcprelay not working properly without sleep
 
     def stop_tcp_relay(self):
         if hasattr(settings, 'tcprelay_process'):
             settings.tcprelay_process.kill()
-            if 'tcprelay' in Utils.run('ps')[0]:
-                Utils.run("kill -9 $(ps a | grep tcprelay.py | grep -v grep | awk '{print $1}')")
 
     def file_exists(self, file):
         file = file.replace('\ ', ' ')

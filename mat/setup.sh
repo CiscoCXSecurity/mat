@@ -11,7 +11,7 @@ errmsg() {
 check_requirements() {
     requirements=( VBoxManage docker docker-machine )
     for req in ${requirements[@]}; do
-        if ! which -s $req; then
+        if ! which $req >> /dev/null; then
             errmsg "$req not found. Please install the following requirements:\n" > /dev/stderr
             printf "%s\n" "${requirements[@]}" > /dev/stderr
             return 1
@@ -54,7 +54,7 @@ main() {
     msg "Deactivating Docker env... "
     eval $(docker-machine env -u)
 
-    msg "Environment Built: Now you can use `mat-docker` to run mat from docker"
+    msg "Environment Built: Now you can use 'mat-docker' to run mat from docker"
 }
 
 main
