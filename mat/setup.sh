@@ -39,7 +39,7 @@ main() {
     { docker-machine status | grep -q Stopped || docker-machine stop; } || return 1
 
     msg "Enabling USB sharing... "
-    { VBoxManage showvminfo $MACHINE_NAME --machinereadable | grep xhci | grep on || VBoxManage modifyvm $MACHINE_NAME --usbxhci on; } || return 1
+    { VBoxManage showvminfo $MACHINE_NAME --machinereadable | grep ehci | grep on || VBoxManage modifyvm $MACHINE_NAME --usbehci on; } || return 1
     { VBoxManage showvminfo $MACHINE_NAME --machinereadable | grep "USB Forward" || VBoxManage usbfilter add 0 --target $MACHINE_NAME --name "USB Forward"; } || return 1
 
     msg "Starting Docker machine"

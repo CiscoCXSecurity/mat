@@ -44,12 +44,29 @@ start-containter() {
     docker start $CONTAINER_NAME
 }
 
+forward-apple-device() {
+    if VBoxManage list -l usbhost | grep -B 7 -A 3 -E "iPhone|iPad" &> /dev/null; then
+        VENDORID=$(VBoxManage list -l usbhost | grep -B 7 -A 3 -E "iPhone|iPad" | grep Vendor | cut -d'(' -f2 | cut -d')' -f1)
+        PRODUCTID=$(VBoxManage list -l usbhost | grep -B 7 -A 3 -E "iPhone|iPad" | grep "ProductId" | cut -d'(' -f2 | cut -d')' -f1)
+        REVISION=$(VBoxManage list -l usbhost | grep -B 7 -A 3 -E "iPhone|iPad" | grep "Revision" | cut -d'(' -f2 | cut -d')' -f1)
+        MANUFACTORER=$(echo -e $(VBoxManage list -l usbhost | grep -B 7 -A 3 -E "iPhone|iPad" | grep "Manufacturer" | cut -d':' -f2))
+        PRODUCT=$(VBoxManage list -l usbhost | grep -B 7 -A 3 -E "iPhone|iPad" | grep "Product" | tail -n 1 | awk '{print $2}')
+        SERIAL=$(VBoxManage list -l usbhost | grep -B 7 -A 3 -E "iPhone|iPad" | grep Serial | awk '{print $2}')
+        NAME="$MANUFACTORER $PRODUCT [$REVISION]"
+        if ! VBoxManage showvminfo default --machinereadable | grep USBFilterSerialNumber | grep $SERIAL &> /dev/null; then
+            #echo "VBoxManage usbfilter add 1 --target \"default\" --name \"$NAME\" --action hold --vendorid \"$VENDORID\" --productid \"$PRODUCTID\" --revision \"$REVISION\" --manufacturer \"$MANUFACTORER\" --product \"$PRODUCT\" --serialnumber \"$SERIAL\" --remote no"
+            VBoxManage usbfilter add 1 --target "default" --name "$NAME" --action hold --vendorid "$VENDORID" --productid "$PRODUCTID" --revision "$REVISION" --manufacturer "$MANUFACTORER" --product "$PRODUCT" --serialnumber "$SERIAL" --remote no
+        fi
+    fi
+}
+
 run-mat() {
-    #docker exec -it $CONTAINER_NAME usbmuxd
+    forward-apple-device
     docker exec -it $CONTAINER_NAME $@
 }
 
 shell() {
+    forward-apple-device
     docker exec -it $CONTAINER_NAME /bin/bash
 }
 
