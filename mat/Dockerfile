@@ -6,6 +6,7 @@ MAINTAINER Ruben De Campos <rcadimad@cisco.com>
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV LANG=en_US.UTF-8
+ENV LC_ALL=POSIX
 
 RUN apt-get -q -y update && \
     apt-get upgrade -q -y && \
@@ -15,7 +16,7 @@ RUN apt-get -q -y update && \
       expect libplist-utils \
       usbmuxd libusbmuxd-tools libimobiledevice-utils usbutils
 
-ENV JAVA_HOME /usr/lib/jvm/openjdk-8
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 ENV PATH $PATH:$JAVA_HOME/bin
 
 ################################## ANDROID SDK #################################
@@ -27,7 +28,7 @@ ADD docker-files/adbkey.pub /root/.android/adbkey.pub
 ADD docker-files/plutil /usr/bin/plutil
 
 RUN wget -q https://dl.google.com/android/repository/platform-tools_r26.0.0-linux.zip -P /tmp && \
-    unzip /tmp/platform-tools_r26.0.0-linux.zip -d /android-sdk
+    unzip -q /tmp/platform-tools_r26.0.0-linux.zip -d /android-sdk
 
 ENV PATH $PATH:/android-sdk/tools:/android-sdk/tools/bin:/android-sdk/platform-tools
 

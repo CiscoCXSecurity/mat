@@ -55,7 +55,7 @@ class Issue(Issue):
                 self.REPORT = True
 
         else:
-           Low.e('More than one new device detected - emulator checks not performed')
+           Log.e('More than one new device detected - emulator checks not performed')
 
         # terminate emulator
         process.kill()

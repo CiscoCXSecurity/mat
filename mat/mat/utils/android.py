@@ -20,7 +20,6 @@ class AndroidUtils(object):
 
     def __init__(self):
         self.ADB           = ADB(adb=settings.adb)
-        self.DROZER        = None
         self.CHECKS_PASSED = {}
         self.launched      = {}
         self.CREATED_AVD   = False
@@ -42,6 +41,30 @@ class AndroidUtils(object):
             self.launched[device] = True
             self.ADB.start_app_on(device, package) # launch the app
             sleep(5)
+
+    def query_provider(self, provider, projection='', selection=''):
+        if '"' in projection or '"' in selection:
+            Log.e('Error: cannnot query providers with "')
+            return ('', '')
+
+        projection = '--projection \\\"{projection}\\\"'.format(projection=projection) if projection else ''
+        selection = '--where \\\"{selection}\\\"'.format(selection=selection) if selection else ''
+        query = 'shell su -c "content query --uri \'content://{provider}\' {projection} {selection}"'.format(provider=provider, projection=projection, selection=selection)
+        return self.ADB._run_on_device(query, shell=True)
+
+    def read_provider(self, provider, provider_path=''):
+        query = 'shell su -c "content read --uri \'content://{provider}{path}\'"'.format(provider=provider, path=provider_path)
+        return self.ADB._run_on_device(query, shell=True)
+
+    def find_world_files(self, starting_path, permissions='r'):
+        find_command = 'shell su -c find ' + starting_path + ' "\( -type b -o -type c -o -type f -o -type s \) -perm -o=' + permissions + ' \-exec ls {} \;"'
+        return self.ADB._run_on_device(find_command)[0]
+
+    def data_path(self, package):
+        return '{data}/{package}/'.format(data=self.ADB.DATA_FOLDER, package=package)
+
+    def app_path(self, package):
+        return self.ADB.app_path(package)
 
     def pull(self, file, dest):
         self.ADB.pull(file, dest)
@@ -93,26 +116,56 @@ class AndroidUtils(object):
         #return [avd.split(":", 1)[-1].strip() for avd in Utils.run('{avdmanager} list avd | {grep} Name'.format(avdmanager=settings.avdmanager, grep=settings.grep))[0].split('\n')]
         return Utils.run('{avdmanager} list avd'.format(avdmanager=settings.avdmanager))[0]
 
-    ############################################################################
-    #    DROZER FUNCTIONS
-    ############################################################################
-
-    def get_drozer(self):
-        if self.DROZER:
-            return self.DROZER
-
-        self.DROZER = Drozer(self.ADB)
-        return self.DROZER
+    def run_on_device(self, command, su=False):
+        su = 'su -c' if su else ''
+        return self.ADB._run_on_device('shell {su} {command}'.format(su=su, command=command))
 
     ############################################################################
     #    UTILS FUNCTIONS
     ############################################################################
 
+    def get_string(self, name, resources_folder):
+        strings_file = '{res}/values/strings.xml'.format(res=resources_folder)
+        if not path.exists(strings_file):
+            return None
+
+        name = name.replace('@string/', '')
+        item = Utils.grep(name, strings_file)
+
+        return item.popitem()[1][0]['code'].split(name, 1)[-1].split('>', 1)[-1].split('<', 1)[0] if len(item) > 0 else None
+
+    def providers(self, manifest, working_folder):
+        import re
+        regex = r'content://[a-zA-Z0-1.-@/]+'
+        providers = []
+        strings = Utils.grep(regex, working_folder)
+        for f in strings:
+            for finding in strings[f]:
+                providers += [re.search(regex, finding['code']).group().split('://', 1)[-1]]
+
+        manifest_providers = manifest.providers()
+        for provider in manifest_providers:
+            provider['name'] = self.get_string(provider['name'], '{working}/decompiled-app/res'.format(working=working_folder)) if '@string' in provider['name'] else provider['name']
+            provider['authority'] = self.get_string(provider['authority'], '{working}/decompiled-app/res'.format(working=working_folder)) if '@string' in provider['authority'] else provider['authority']
+            providers += ['{auth}{name}'.format(auth=provider['authority'], name=provider['name']) if provider['name'].startswith('.') else provider['authority']]
+
+        new_providers = []
+        for provider in providers:
+            new_providers += [provider[:-1] if provider.endswith('/') else '{provider}/'.format(provider=provider)]
+
+        return sorted(set(providers + new_providers))
+
     def create_avd(self, name='MAT-Testing', api='26'):
         Log.w('Creating AVD {name} with android api {api}'.format(name=name, api=api))
 
+        Log.d('Accepting Licenses')
+        Utils.run('yes | {sdkmanager} --licenses'.format(sdkmanager=settings.sdkmanager), shell=True)
+
+        Log.d('Updating sdkmanager')
+        Utils.run('echo y | {sdkmanager} --update'.format(sdkmanager=settings.sdkmanager), shell=True)
+
         Log.d('Installing api with sdkmanager')
-        if 'done' not in Utils.run('{sdkmanager} "system-images;android-{api};google_apis;x86"'.format(sdkmanager=settings.sdkmanager, api=api), shell=True)[0]:
+        if not any(s in Utils.run('{sdkmanager} "system-images;android-{api};google_apis;x86"'.format(sdkmanager=settings.sdkmanager, api=api), shell=True)[0] for s in ['done', '100%']):
             Log.e('Could not install android api {api}. Install it manually.'.format(api=api))
             return False
 
@@ -165,107 +218,43 @@ class AndroidUtils(object):
         return smali_method
 
     def clean(self):
-        if self.DROZER:
-            self.DROZER.stop()
         self.ADB.clean()
         self.ADB.stop_server()
 
     def install_busy_box(self, dest="/system/xbin"):
         Log.w('Installing Busy Box On: {path}'.format(path=dest))
 
-        #http://android.stackexchange.com/questions/123183/how-do-i-install-dropbear-ssh-on-android
         if 'aarch64' not in self.ADB._run_on_device('shell uname -a')[0]:
             Log.e('Error: Can\'t install busybox (not x64 arch), please do it manually')
             return False
 
-        TMP_FOLDER = '/tmp/bb-bins'
-
-        Log.d('Pushing binaries to: {device}'.format(device=self.ADB.DEVICE))
-        Utils.run('{unzip} -o {bins} -d {tmp}'.format(unzip=settings.unzip, bins=settings.busybox_bins, tmp=TMP_FOLDER))
-
-        self.ADB.make_dir('{tmp}/bbins'.format(tmp=self.ADB.TMP_FOLDER))
-        self.push('{tmp}/*'.format(tmp=TMP_FOLDER), '{tmp}/bbins'.format(tmp=self.ADB.TMP_FOLDER))
+        Log.d('Pushing busybox to: {device}'.format(device=self.ADB.DEVICE))
+        self.push('{busybox}'.format(busybox=settings.busybox), '{tmp}/'.format(tmp=self.ADB.TMP_FOLDER))
 
         Log.d('Remounting /system as rw')
         self.ADB._run_on_device('shell su -c mount -o remount,rw /system')
 
         Log.d('Moving binaries to /system/xbin')
-        self.ADB._run_on_device('shell su -c cp "{tmp}/bbins/*" {dest}/'.format(tmp=self.ADB.TMP_FOLDER, dest=dest))
+        self.ADB._run_on_device('shell su -c cp "{tmp}/busybox" {dest}/'.format(tmp=self.ADB.TMP_FOLDER, dest=dest))
         self.ADB._run_on_device('shell su -c chown root:shell {dest}/*'.format(dest=dest))
         self.ADB._run_on_device('shell su -c chmod 755 {dest}/*'.format(dest=dest))
-
-        Log.d('Installing busybox and creating symlinks')
-        self.ADB._run_on_device('shell su -c {dest}/busybox --install {dest}'.format(dest=dest))
-        self.ADB._run_on_device('shell su -c ln -s {dest}/dropbearmulti {dest}/dropbear'.format(dest=dest))
-        self.ADB._run_on_device('shell su -c ln -s {dest}/dropbearmulti {dest}/dbclient'.format(dest=dest))
-        self.ADB._run_on_device('shell su -c ln -s {dest}/dropbearmulti {dest}/ssh'.format(dest=dest))
-        self.ADB._run_on_device('shell su -c ln -s {dest}/dropbearmulti {dest}/dropbearkey'.format(dest=dest))
-        self.ADB._run_on_device('shell su -c ln -s {dest}/dropbearmulti {dest}/dropbearconvert'.format(dest=dest))
 
         Log.d('Remounting /system as ro')
         self.ADB._run_on_device('shell su -c mount -o remount,ro /system')
 
-        Log.d('Removing garbage files')
-        Utils.run('rm -rf {tmp}'.format(tmp=TMP_FOLDER))
-        self.ADB._run_on_device('shell su -c rm -rf {tmp}/bbins'.format(tmp=self.ADB.TMP_FOLDER))
+        Log.d('Removing temp files')
+        self.ADB._run_on_device('shell su -c rm -rf {tmp}/busybox'.format(tmp=self.ADB.TMP_FOLDER))
 
         return True
 
-    def setup_ssh(self, key=None, autostart=False):
-        """
-        Deprecated - Used to setup proxy on android - not working on newwer versions
-        """
-        Log.w('Setting up Dropbear on: {device}'.format(device=self.ADB.DEVICE))
+    def compile(self, app_path):
+        Log.d('Compiling Android Application: {path}'.format(path=app_path))
 
-        DROPBEAR_DATA = '/data/dropbear'
-        DROPBEAR_SSH  = '{data}/.ssh'.format(data=DROPBEAR_DATA)
-        RSA_KEY       = 'dropbear_rsa_host_key'
-        DSS_KEY       = 'dropbear_dss_host_key'
+        yml = YML(app_path, settings.apkfilename)
+        settings.apkfilename = '{name}-new.apk'.format(name=yml.apk_file_name.replace('.apk', ''))
 
-        Log.d('Creating Dropbear Folders')
-
-        if not self.ADB.exists(DROPBEAR_DATA):
-            self.ADB.make_dir(DROPBEAR_DATA)
-        self.ADB._run_on_device('shell su -c chmod 755 {data}'.format(data=DROPBEAR_DATA))
-
-        if key and path.exists(key):
-            Log.d('Setting up authorized keys with: {key}'.format(key=key))
-            if not self.ADB.exists(DROPBEAR_SSH):
-                self.ADB.make_dir(DROPBEAR_SSH)
-            self.ADB._run_on_device('shell su -c chmod 700 {data}'.format(data=DROPBEAR_SSH))
-            self.ADB.push(key, '{tmp}/authorized_keys'.format(tmp=self.ADB.TMP_FOLDER))
-            self.ADB._run_on_device('shell su -c mv {tmp}/authorized_keys {ssh}/authorized_keys'.format(tmp=self.ADB.TMP_FOLDER, ssh=DROPBEAR_SSH))
-            self.ADB._run_on_device('shell su -c chown root: {ssh}/authorized_keys'.format(ssh=DROPBEAR_SSH))
-            self.ADB._run_on_device('shell su -c chmod 600 {ssh}/authorized_keys'.format(ssh=DROPBEAR_SSH))
-
-        if autostart and not self.ADB.exists('/etc/init.local.rc') or 'dropbear' not in self.ADB._run_on_device('shell cat /etc/init.local.rc')[0]:
-            CONTENT = '\n# start Dropbear (ssh server) service on boot\nservice sshd /system/xbin/dropbear -s\n   user  root\n   group root\n   oneshot\n'
-            FILE = ''
-            if self.ADB.exists('/etc/init.local.rc'):
-                FILE = self.ADB._run_on_device('shell su -c cat /etc/init.local.rc')[0]
-
-            Log.d('Updating Autostart Script')
-            FILE = '{file}\n{content}'.format(file=FILE, content=CONTENT)
-            with open('/tmp/init.local.rc', 'w') as f:
-                f.write(FILE)
-
-            self.ADB.push('/tmp/init.local.rc', '{tmp}/init.local.rc'.format(tmp=self.ADB.TMP_FOLDER))
-
-            Log.d('Remounting /system as rw')
-            self.ADB._run_on_device('shell su -c mount -o remount,rw /system')
-            self.ADB._run_on_device('shell su -c mv {tmp}/init.local.rc /etc/init.local.rc'.format(tmp=self.ADB.TMP_FOLDER))
-
-            Log.d('Remounting /system as ro')
-            self.ADB._run_on_device('shell su -c mount -o remount,ro /system')
-
-    def compile(self, appPath):
-        Log.d('Compiling Android Application: {path}'.format(path=appPath))
-
-        yml = YML(appPath)
-        settings.apkfilename = '{name}-new.apk'.format(name=yml.apkFileName.replace('.apk', ''))
-
-        Log.w('Compiling Android Application in {path} to {name}'.format(path=appPath, name=settings.apkfilename))
-        Utils.run('{apktool} b -o {name} {path}'.format(apktool=settings.apktool, name=settings.apkfilename, path=appPath))
+        Log.w('Compiling Android Application in {path} to {name}'.format(path=app_path, name=settings.apkfilename))
+        Utils.run('{apktool} b -o {name} {path}'.format(apktool=settings.apktool, name=settings.apkfilename, path=app_path))
 
         if path.exists(settings.apkfilename):
             signed = '{name}-signed.apk'.format(name=settings.apkfilename.replace('-new.apk', ''))
@@ -284,7 +273,7 @@ class AndroidUtils(object):
 
     def check_dependencies(self, dependencies=['full'], silent=True, install=False, force=False):
         """
-        top_level_dependencies     = ['full', 'static', 'dynamic', 'signing', 'drozer', 'avd']
+        top_level_dependencies     = ['full', 'static', 'dynamic', 'signing', 'avd']
         binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'apktool', 'jdcli', 'dex2jar', 'signjar', 'cert', 'pk8']
         """
 
@@ -297,7 +286,7 @@ class AndroidUtils(object):
             Log.e('Error: Dependencies must be a list')
             return False
 
-        valid_dependencies   = ['full', 'static', 'dynamic', 'signing', 'drozer', 'avd']
+        valid_dependencies   = ['full', 'static', 'dynamic', 'signing', 'avd']
         invalid_dependencies = list(set(dependencies)-set(valid_dependencies))
         if invalid_dependencies:
             Log.e('Error: The following dependencies cannot be checked: {deps}'.format(deps=', '.join(invalid_dependencies)))
@@ -341,22 +330,6 @@ class AndroidUtils(object):
             if not silent: Log.w('using device: {device}'.format(device=self.device()))
 
         ########################################################################
-        # DROZER DEPENDENCIES
-        ########################################################################
-        if 'full' in dependencies or 'drozer' in dependencies:
-            self.CHECKS_PASSED['drozer'] = True
-
-            if not path.exists(settings.drozer):
-                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['drozer'] = False
-            if not silent: Log.w('drozer path: {path}'.format(path=settings.drozer))
-
-            if install and self.device() and not self.has(Drozer.PACKAGE, self.device()):
-                self.install(settings.drozer_agent)
-            if not self.device() or not self.has(Drozer.PACKAGE, self.device()):
-                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['drozer'] = False
-            if not silent: Log.w('drozer agent APK installed: {path}'.format(path=self.CHECKS_PASSED['drozer']))
-
-        ########################################################################
         # AVD DEPENDENCIES
         ########################################################################
         if 'full' in dependencies or 'avd' in dependencies:
@@ -387,6 +360,7 @@ class AndroidUtils(object):
                 if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
 
         return all([self.CHECKS_PASSED[d] for d in self.CHECKS_PASSED if d in dependencies])
+
 
 class ADB(object):
 
@@ -504,6 +478,11 @@ class ADB(object):
         package = self._run_on_device('shell pm path {package}'.format(package=package))[0]
         return package.split(':', 1)[1] if package else package
 
+    def app_path(self, package):
+        package = self._run_on_device('shell pm path {package}'.format(package=package))[0]
+        return package.split(':', 1)[1].rsplit('/', 1)[0] if package else package
+
+
     def exists(self, file):
         return 'No such file' not in self._run_on_device('shell su -c ls {file}'.format(file=file))[0]
 
@@ -513,162 +492,94 @@ class ADB(object):
     def clean(self):
         self._run_on_device('shell su -c rm -rf {tmp}'.format(tmp=ADB.TMP_FOLDER))
 
-class Drozer(object):
-
-    PACKAGE       = 'com.mwr.dz'
-    MAIN_ACTIVITY = '.activities.MainActivity'
-    LOCAL         = 'tcp:31415'
-    REMOTE        = 'tcp:31415'
-
-    def __init__(self, adb):
-        self.ADB    = adb
-        self.DROZER = settings.drozer
-        self.start()
-
-    def start(self):
-        self.ADB.start_activity('{package}/{activity}'.format(package=Drozer.PACKAGE, activity=Drozer.MAIN_ACTIVITY))
-        self.ADB.forward(Drozer.LOCAL, Drozer.REMOTE)
-
-    def installed(self,):
-        return Drozer.PACKAGE in self.ADB.packages()
-
-    def main_activity(self, package):
-        return Drozer.info().split('\n')[1].strip().replace(package, '')
-
-    def _run(self, command, shell=False):
-        output = Utils.run('{drozer} console connect -c {command}'.format(drozer=self.DROZER, command=command), shell)
-        if output[1]:
-            Log.e('Error: Drozer error: {error}'.format(error=output[1]))
-            return ['','']
-        return output
-
-    def info(self, package):
-        return self._run('"run app.package.info -a {package}"'.format(package=package), True)[0]
-
-    def surface(self, package):
-        return self._run('"run app.package.attacksurface {package}"'.format(package=package), True)[0]
-
-    def activities(self, package):
-        return self._run('"run app.activity.info -a {package}"'.format(package=package), True)[0]
-
-    def services(self, package):
-        return self._run('"run app.service.info -a {package}"'.format(package=package), True)[0]
-
-    def providers(self, package):
-        return self._run('"run app.provider.info -a {package}"'.format(package=package), True)[0]
-
-    def receivers(self, package):
-        return self._run('"run app.broadcast.info -a {package}"'.format(package=package), True)[0]
-
-    def traversal(self, package):
-        return self._run('"run scanner.provider.traversal -a {package}"'.format(package=package), True)[0]
-
-    def injection(self, package):
-        return self._run('"run scanner.provider.injection -a {package}"'.format(package=package), True)[0]
-
-    def uris(self, package):
-        return self._run('"run scanner.provider.finduris -a {package}"'.format(package=package), True)[0]
-
-    def tables(self, package):
-        return self._run('"run scanner.provider.sqltables -a {package}"'.format(package=package), True)[0]
-
-    def native(self, package):
-        return self._run('"run scanner.misc.native -a {package}"'.format(package=package), True)[0]
-
-    def codes(self):
-        return self._run('"run scanner.misc.secretcodes"', True)[0]
-
-    def writable(self, package):
-        return self._run('"run scanner.misc.writablefiles -p /data/data/{package}"'.format(package=package), True)[0]
-
-    def suid(self, package):
-        return self._run('"run scanner.misc.sflagbinaries -p -t /data/data/{package}"'.format(package=package), True)[0]
-
-    def readable(self, package):
-        return self._run('"run scanner.misc.readablefiles -p /data/data/{package}"'.format(package=package), True)[0]
-
-    def browsable(self, package):
-        return self._run('"run scanner.activity.browsable -a {package}"'.format(package=package), True)[0]
-
-    def stop(self):
-        self.ADB.removeForward(Drozer.LOCAL)
-
-    @staticmethod
-    def parse_output(key=None, output=None):
-        if key == '' and output:
-            return [line for line in filter(lambda line: line != '', output.split('\n')[1:-1])]
-
-        if not key or not output:
-            return ''
-
-        result = []
-        save = False
-        for line in output.split('\n'):
-            if save:
-                if line.strip() == '':
-                    break
-                result.append(line.strip())
-            if key in line:
-                save = True
-
-        return result
-
 
 class Manifest(object):
 
-    NAMESPACE = 'android'
-    URI       = 'http://schemas.android.com/apk/res/android'
-
-    def __init__(self, fpath='.'):
+    def __init__(self, fpath='.', apk_file_name='unknown.apk'):
         import xml.etree.ElementTree as ET
 
         # create xml parser
-        self.xml     = ET.parse('{path}/AndroidManifest.xml'.format(path=fpath))
-        self.root    = self.xml.getroot()
-        self.yml     = YML(fpath)
-        self.package = self.root.get('package')
-        self.version = self.yml.version or self.root.get('platformBuildVersionName')
+        with open('{path}/AndroidManifest.xml'.format(path=fpath), 'r') as f:
+            self.root = ET.fromstring(f.read().replace('xmlns:android="http://schemas.android.com/apk/res/android" ','').replace('android:',''))
 
-        # this is used to write the manifest correctly
-        ET.register_namespace(Manifest.NAMESPACE, Manifest.URI)
+        self.yml     = YML(fpath, apk_file_name)
+        self.package = self.root.get('package')
+        self.version = self.yml.version or self.root.get('platformBuildVersionName', '')
 
     def permissions(self):
-        return [p.get('{' + Manifest.URI + '}name') for p in self.root.findall('uses-permission')]
+        return [p.get('name', '') for p in self.root.findall('uses-permission')]
 
-    def main_activity(self):
+    def providers(self):
+        providers = []
+        for provider in self.root.find('application').findall('provider'):
+            providers += [{
+                'authority': provider.get('authorities', ''),
+                'exported': provider.get('exported', 'false') == 'true',
+                'name': provider.get('name', '')
+            }]
+        return providers
+
+    def secret_codes(self):
+        codes = []
+        for r in self.root.find('application').findall('receiver'):
+            for f in r.findall('intent-filter'):
+                for d in f.findall('data'):
+                    scheme = d.get('scheme', '')
+                    host = d.get('host', '')
+                    if scheme and host and 'android_secret_code' in scheme:
+                        codes += [host]
+        return codes
+
+    def browsable(self):
+        browsable_uris    = []
+        browsable_classes = []
+        for activity in self.root.find('application').findall('activity'):
+            for intentfilter in activity.findall('intent-filter'):
+                for category in intentfilter.findall('category'):
+                    if category.get('name') == "android.intent.category.BROWSABLE":
+                        browsable_classes += [activity.get('name', '')]
+                        for data in intentfilter.findall('data'):
+                            scheme, host= data.get('scheme', ''), data.get('host', '')
+                            port = ':{port}'.format(port=data.get('port', '')) if data.get('port', '') else ''
+                            uri_path, prefix, pattern = data.get('path', ''), data.get('pathPrefix', ''), data.get('pathPattern', '')
+                            browsable_uris += ['{scheme}://{host}{port}{path}{prefix}{pattern}'.format(scheme=scheme, host=host, port=port, path=uri_path, prefix=prefix, pattern=pattern)]
+                        break
+
+        return (sorted(set(browsable_classes)), sorted(set(browsable_uris)))
+
+    def main_activity(self, package):
         for a in self.root.find('application').findall('activity'):
             intentf = a.find('intent-filter')
-            action = intentf.find('action') if intentf else None
-            # needs to have != None for some reason
-            if action != None and action.get('{' + Manifest.URI + '}name') == 'android.intent.action.MAIN':
-                return a.get('{' + Manifest.URI + '}name').replace(settings.package, '')
+            action = intentf.find('action') if intentf is not None else None
+            if action is not None and action.get('name', '') == 'android.intent.action.MAIN':
+                return a.get('name', '').replace(package, '')
 
     def allows_backup(self):
-        return self.root.find('application').get('{' + Manifest.URI + '}allowBackup') == 'true'
+        return self.root.find('application').get('allowBackup', 'false') == 'true'
 
     def debuggable(self):
-        return self.root.find('application').get('{' + Manifest.URI + '}debuggable') == 'true'
+        return self.root.find('application').get('debuggable', 'false') == 'true'
 
     def get_sdk(self, sdk='min'):
-        result = self.root.find('application').find('uses-sdk').get('{' + Manifest.URI + '}{sdk}SdkVersion'.format(sdk=sdk.capitalize())) if self.root.find('application').find('uses-sdk') else self.yml.get_sdk(sdk)
+        result = self.root.find('application').find('uses-sdk').get('{sdk}SdkVersion'.format(sdk=sdk.capitalize()), '') if self.root.find('application').find('uses-sdk') else self.yml.get_sdk(sdk)
         return result if result else self.yml.get_sdk(sdk)
 
 class YML(object):
 
     YML_FILE = 'apktool.yml'
 
-    def __init__(self, fpath='.'):
+    def __init__(self, fpath='.', apk_file_name="unkown.apk"):
         self.raw = ''
         if path.exists('{path}/{yml}'.format(path=fpath, yml=YML.YML_FILE)):
             with open('{path}/{yml}'.format(path=fpath, yml=YML.YML_FILE), 'r') as f:
                 self.raw = f.read()
 
-        self.minSDK      = self.raw.split('minSdkVersion:')[1].split('\'')[1].strip() if 'minSdkVersion' in self.raw else '-1'
-        self.maxSDK      = self.raw.split('maxSdkVersion:')[1].split('\'')[1].strip() if 'maxSdkVersion' in self.raw else '-1'
-        self.targetSDK   = self.raw.split('targetSdkVersion:')[1].split('\'')[1].strip() if 'targetSdkVersion' in self.raw else '-1'
-        self.apkFileName = self.raw.split('apkFileName:')[1].split('\n')[0].strip() if 'apkFileName' in self.raw else settings.apkfilename
-        self.version     = self.raw.split('versionName:')[1].split('\n')[0].strip() if 'versionName' in self.raw else ''
+        self.min_sdk      = self.raw.split('minSdkVersion:')[1].split('\'')[1].strip() if 'minSdkVersion' in self.raw else '-1'
+        self.max_sdk      = self.raw.split('maxSdkVersion:')[1].split('\'')[1].strip() if 'maxSdkVersion' in self.raw else '-1'
+        self.target_sdk   = self.raw.split('targetSdkVersion:')[1].split('\'')[1].strip() if 'targetSdkVersion' in self.raw else '-1'
+        self.apk_filename = self.raw.split('apkFileName:')[1].split('\n')[0].strip() if 'apkFileName' in self.raw else apk_file_name
+        self.version      = self.raw.split('versionName:')[1].split('\n')[0].strip() if 'versionName' in self.raw else ''
 
     def get_sdk(self, sdk='min'):
-        return getattr(self, '{sdk}SDK'.format(sdk=sdk.lower()))
+        return getattr(self, '{sdk}_sdk'.format(sdk=sdk.lower()))
 

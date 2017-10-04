@@ -234,7 +234,7 @@ class IOSAnalysis(object):
             return self.cordova.run_analysis()
         return []
 
-    def run_analysis(self):
+    def run_analysis(self, analysis_type='full'):
         if not self.PREPARED:
             Log.e('Error: Analysis not prepared')
             return []

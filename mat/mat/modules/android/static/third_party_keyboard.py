@@ -13,7 +13,7 @@ class Issue(Issue):
     REGEX       = r'getInputMethodList'
 
     def dependencies(self):
-        return (Utils.is_osx() and self.ANALYSIS.UTILS.check_dependencies(['satic'], install=True)) or self.ANALYSIS.UTILS.check_dependencies(['dynamic'], install=True)
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
 
     def run(self):
         files = Utils.grep(self.REGEX, self.ANALYSIS.LOCAL_SMALI + "*")

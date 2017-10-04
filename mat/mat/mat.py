@@ -23,16 +23,29 @@ from analysis.ios import IOSAnalysis
 TODO LIST
 * Add interactive mode
 * Finish Cordova features check
-* Change drozer checks for manual checks (remove drozer dependency)
 * Add code obfuscation detection
 * Improve documentation
+* Remove the is_osc from the ios issues - make it only 1 method
+* Use busy box for android operations
 """
 
 """
+MAKE DROZER WORK:
+export LC_ALL=POSIX
+export PYTHONPATH=$PYTHONPATH:/tmp/drozer/src
+
+OLD ANDROID SDK: http://dl.google.com/android/android-sdk_r23-linux.tgz
+
+sdkmanager
+wget
+unzip
+# touch ~/.android/repositories.cfg
+yes | sdkmanager --update
+yes | sdkmanager --licenses
+export ANDROID_SDK_ROOT=/android-sdk
 
 """
 
-_VERSION = '3.1.6'
 
 _BANNER = '''
 
@@ -46,7 +59,7 @@ _BANNER = '''
   Copyright 2017 - Portcullis, https://www.portcullis-security.com
 
   Your local settings will be under {lsettings}/mat_settings.py.
-'''.format(version=_VERSION, lsettings=settings.LOCAL_SETTINGS)
+'''.format(version=settings._VERSION, lsettings=settings.LOCAL_SETTINGS)
 
 def _find_executables():
     # system installed packages
@@ -55,7 +68,6 @@ def _find_executables():
     settings.grep        = Utils.run('which grep')[0].split('\n')[0]
     settings.egrep       = Utils.run('which egrep')[0].split('\n')[0]
     settings.java        = Utils.run('which java')[0].split('\n')[0]
-    settings.drozer      = Utils.run('which drozer')[0].split('\n')[0]
     settings.unzip       = Utils.run('which unzip')[0].split('\n')[0]
     settings.strings     = Utils.run('which strings')[0].split('\n')[0]
     settings.md5sum      = Utils.run('which md5sum')[0].split('\n')[0]
@@ -115,7 +127,7 @@ def _clargs():
     iosparser.add_argument('-k', '--no-keep',          required=False, default=False, action='store_true',                     help='Deletes the local data (decrypted binary, pulled IPA, data files, classes, etc.) once the analysis is complete')
 
     iosparser.add_argument('-r', '--run-checks',       required=False, default=False, action='store_true',                     help='Performs dependency checks for iOS')
-    iosparser.add_argument('-o', '--output',           required=False, metavar='/path/to/output',                                    help='Folder to where the tool will report')
+    iosparser.add_argument('-o', '--output',           required=False, metavar='/path/to/output',                              help='Folder to where the tool will report')
 
     # ease of use options
     iosparser.add_argument('-u', '--update-apps',      required=False, default=False, action='store_true',                     help='Update iOS applications list')
@@ -140,7 +152,7 @@ def _clargs():
     androidparser.add_argument('-k', '--no-keep',      required=False, default=False, action='store_true',                     help='Deletes the decompiled APK and all data after static analysis')
 
     androidparser.add_argument('-r', '--run-checks',   required=False, default=False, action='store_true',                     help='Performs dependency checks for Android')
-    androidparser.add_argument('-o', '--output',       required=False, metavar='/path/to/output',                                    help='Folder to where the tool will report')
+    androidparser.add_argument('-o', '--output',       required=False, metavar='/path/to/output',                              help='Folder to where the tool will report')
 
     return parser.parse_args()
 

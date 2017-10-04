@@ -51,6 +51,9 @@ main() {
     msg "Building MAT-Docker image... "
     docker build --force-rm -t mat-docker . || return 1
 
+    msg "Cleaning unused images..."
+    docker image prune -f
+
     msg "Deactivating Docker env... "
     eval $(docker-machine env -u)
 

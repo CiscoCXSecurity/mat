@@ -2,15 +2,14 @@
 from setuptools.command.install import install
 from setuptools.command.develop import develop
 from setuptools import setup, find_packages
-from sys import argv
-from os import getenv, path, makedirs, rename, chmod
+from os import path, makedirs, chmod
 from shutil import copy
 
-version = '3.1.6'
+from mat.utils import settings
+
 file_path = path.realpath(__file__).rsplit('/', 1)[0]
 
-HOME              = getenv('HOME')
-CONFIG_FOLDER     = '{home}/.mat'.format(home=HOME)
+CONFIG_FOLDER     = settings.LOCAL_SETTINGS
 LIB_FOLDER        = '{config}/lib'.format(config=CONFIG_FOLDER)
 LIB_SUBFOLDERS    = ['{lib}/dex2jar'.format(lib=LIB_FOLDER), '{lib}/dex2jar/lib'.format(lib=LIB_FOLDER), '{lib}/signing'.format(lib=LIB_FOLDER)]
 LIB_FILES         = [
@@ -24,9 +23,9 @@ LIB_FILES         = [
     'dex2jar/lib/dex-writer-2.0.jar', 'dex2jar/lib/dx-1.7.jar',
     'dump_fileprotection', 'dump_log', 'dumpdecrypted.dylib', 'jd-cli',
     'jd-cli.jar', 'scptoios', 'signing/cert.x509.pem', 'signing/key.pk8',
-    'signing/signapk.jar', 'sshios', 'tcprelay.py', 'usbmux.py',
+    'signing/signapk.jar', 'sshios',
     'class-dump', 'class-dump-macos', 'scpfromios', 'keychain_dump',
-    'drozer-agent.apk', 'bb-bins.zip', 'backup_excluded'
+    'busybox', 'backup_excluded'
 ]
 
 MODULES = [
@@ -92,7 +91,7 @@ def common(debug=False):
 
     # copy template to place
     if path.exists(SETTINGS_FILENAME):
-        SETTINGS_FILENAME = '{lsettings}_{version}.py'.format(lsettings=SETTINGS_FILENAME.replace(".py", ""), version=version.replace(".", ""))
+        SETTINGS_FILENAME = '{lsettings}_{version}.py'.format(lsettings=SETTINGS_FILENAME.replace(".py", ""), version=settings._VERSION.replace(".", ""))
 
     # creating default settings
     with open(SETTINGS_FILENAME, 'w') as w:
@@ -102,19 +101,19 @@ def common(debug=False):
             exit(0)
         print('[+] {lsettings} created.'.format(lsettings=SETTINGS_FILENAME))
 
-class PreInstall(install):
+class _pre_install(install):
     def run(self):
         common(debug=False)
         install.run(self)
 
-class PreDevelop(develop):
+class _pre_develop(develop):
     def run(self):
         common(debug=True)
         develop.run(self)
 
 setup(
     name="mat",
-    version=version,
+    version=settings._VERSION,
     packages=find_packages(),
     include_package_data=True,
     entry_points={
@@ -123,8 +122,8 @@ setup(
         ]
     },
     cmdclass={
-        'install': PreInstall,
-        'develop': PreDevelop,
+        'install': _pre_install,
+        'develop': _pre_develop,
     },
     author='Ruben de Campos',
     author_email='rdc@65535.com',

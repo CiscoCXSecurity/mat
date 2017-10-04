@@ -31,6 +31,10 @@ class AndroidAnalysis(object):
 
         JAR_FILE             - JAR file extracted from the DEX file of the app
 
+        REMOTE_DATA_FOLDER   - Folder containing data contents of the app on the device
+
+        REMOTE_APP_FOLDER    - Folder containing the app on the device
+
 
         UTILS                - Object with several methods to interact with the device and app
 
@@ -45,17 +49,21 @@ class AndroidAnalysis(object):
     def __init__(self, utils, apk=None, package=None):
         Log.w('Creating Analysis for: {app} / {apk}'.format(apk=apk, app=package))
 
-        self.UTILS            = utils
-        self.WORKING_APK_FILE = apk
-        self.PACKAGE          = package
-        self.PREPARED         = self.prepare_analysis()
+        self.UTILS              = utils
+        self.WORKING_APK_FILE   = apk
+        self.PACKAGE            = package
+        self.PREPARED           = self.prepare_analysis()
+
+        self.REMOTE_DATA_FOLDER = self.UTILS.data_path(self.PACKAGE)
+        self.REMOTE_APP_FOLDER  = self.UTILS.app_path(self.PACKAGE)
 
     def prepare_analysis(self, decompile=True):
         Log.w('Preparing Android Analysis')
 
         if not self.UTILS.check_dependencies(['static', 'dynamic'], install=True, silent=True):
-            Log.e('Error: Dependencies not met, run `-r` for more details')
+            Log.e('Error: Not all ependencies met, run `-r` for more details')
 
+        # Creates local folders to store the analysis data
         self.LOCAL_WORKING_FOLDER = '{output}/{work}-{uuid}'.format(output=settings.output, work=AndroidAnalysis.LOCAL_WORKING_FOLDER, uuid=(self.PACKAGE or self.WORKING_APK_FILE.rsplit('/',1)[-1].rsplit('.',1)[0]))
         self.LOCAL_DATA_CONTENT   = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=AndroidAnalysis.LOCAL_DATA_CONTENT)
         self.LOCAL_DECOMPILED_APP = '{main}/{data}'.format(main=self.LOCAL_WORKING_FOLDER, data=AndroidAnalysis.LOCAL_DECOMPILED_APP)
@@ -92,7 +100,7 @@ class AndroidAnalysis(object):
             Log.w('Decompiling {apk} to {dir}'.format(apk=self.WORKING_APK_FILE, dir=self.LOCAL_DECOMPILED_APP))
             Utils.run('{apktool} -q d -f {apk} -o {out}'.format(apktool=settings.apktool, apk=self.WORKING_APK_FILE, out=self.LOCAL_DECOMPILED_APP))
 
-        self.MANIFEST    = Manifest(self.LOCAL_DECOMPILED_APP)
+        self.MANIFEST    = Manifest(self.LOCAL_DECOMPILED_APP, settings.apkfilename)
         self.PACKAGE     = self.MANIFEST.package
         self.JAR_FILE    = '{working}/{package}.jar'.format(working=self.LOCAL_WORKING_FOLDER, package=self.PACKAGE)
         self.LOCAL_SMALI = '{decompiled}/smali'.format(decompiled=self.LOCAL_DECOMPILED_APP)
@@ -194,13 +202,13 @@ class AndroidAnalysis(object):
 
         return issues
 
-    def run_cordova_checks(self):
+    def run_cordova_analysis(self):
         self.cordova = CordovaAnalysis(self.LOCAL_DECOMPILED_APP, data=self.LOCAL_DATA_CONTENT, atype='android')
         if self.cordova.found():
             return self.cordova.run_analysis()
         return []
 
-    def run_analysis(self, atype='full'):
+    def run_analysis(self, analysis_type='full'):
         if not self.PREPARED:
             Log.e('Error: Analysis not prepared')
             return []
@@ -210,9 +218,9 @@ class AndroidAnalysis(object):
         Log.w('Starting Android Analysis')
         if self.UTILS.check_dependencies(['static'], silent=True, install=False):
             issues = self.run_static_analysis()
-            issues += self.run_cordova_checks()
+            issues += self.run_cordova_analysis()
 
-        if ('full' in atype or 'dynamic' in atype) and self.UTILS.check_dependencies(['dynamic'], silent=True, install=False):
+        if any(t in analysis_type for t in ['full', 'dynamic']) and self.UTILS.check_dependencies(['dynamic'], silent=True, install=False):
             Log.w('Starting Dynamic Analysis')
             issues += self.run_dynamic_analysis()
 
