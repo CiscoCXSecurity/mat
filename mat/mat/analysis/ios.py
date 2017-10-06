@@ -136,13 +136,13 @@ class IOSAnalysis(object):
         self.LOCAL_CLASS_DUMP = '{base}/{app}'.format(base=self.LOCAL_CLASS_DUMP, app=self.APP_INFO['CFBundleExecutable'])
 
         # get classes
-        if 'Darwin' in Utils.run('uname')[0]:
+        if Utils.is_osx():
             Utils.run('{classdumpmac} -H {localbin} -o {localclassdump}'.format(classdumpmac=settings.class_dump_mac, localbin=self.LOCAL_WORKING_BIN, localclassdump=self.LOCAL_CLASS_DUMP))
         elif self.UTILS.check_dependencies(['connection'], install=False, silent=True):
             result = self.UTILS.run_on_ios('{classdump} -H "{binary}" -o {working}/app-class-dump/'.format(classdump=self.UTILS.CLASS_DUMP, binary=self.IOS_BIN_PATH, working=self.IOS_WORKING_FOLDER))
             self.UTILS.pull('{working}/app-class-dump/'.format(working=self.IOS_WORKING_FOLDER), self.LOCAL_CLASS_DUMP)
 
-        return True and self.UTILS.check_dependencies(['full'], install=False, silent=True)
+        return True #and self.UTILS.check_dependencies(['full'], install=False, silent=True)
 
     def clean_analysis(self):
         if self.UTILS.check_dependencies(['connection'], silent=True):
@@ -185,7 +185,7 @@ class IOSAnalysis(object):
         module_type = 'modules/ios/dynamic'
         return self._run_custom_modules(module_type)
 
-    def run_static_checks(self):
+    def run_static_analysis(self):
         issues = []
         import mat.modules.ios.static
         static_checks = [m.replace('.py', '') for m in listdir(mat.modules.ios.static.__path__[0]) if not m.endswith('.pyc') and not m.startswith('__')]
@@ -205,7 +205,7 @@ class IOSAnalysis(object):
 
         return issues
 
-    def run_dynamic_checks(self):
+    def run_dynamic_analysis(self):
         # launch the app
         self.UTILS.launch_app(self.APP_INFO)
 
@@ -240,14 +240,16 @@ class IOSAnalysis(object):
             return []
 
         Log.w("Starting iOS Analysis")
-
         ### checks start here
-        issues = self.run_static_checks()
-        issues += self.run_dynamic_checks()
+        if self.UTILS.check_dependencies(['static'], silent=True, install=False):
+            issues = self.run_static_analysis()
 
-        ### get data from device
-        Log.d('Getting data from device')
-        self.UTILS.pull(self.IOS_DATA_PATH, self.LOCAL_DATA_CONTENT)
+        if analysis_type != 'static' and self.UTILS.check_dependencies(['dynamic'], silent=True, install=False):
+            issues += self.run_dynamic_analysis()
+
+            ### get data from device
+            Log.d('Getting data from device')
+            self.UTILS.pull(self.IOS_DATA_PATH, self.LOCAL_DATA_CONTENT)
 
         issues += self.run_cordova_checks()
 

@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # system modules
-from json import loads as _loads
 from sys import path as _path
-from os import makedirs as _makedirs
 from os.path import exists as _exists
 import argparse as _argparse
 
@@ -20,29 +18,34 @@ from analysis.android import AndroidAnalysis
 from analysis.ios import IOSAnalysis
 
 """
-TODO LIST
+TODO
 * Add interactive mode
 * Finish Cordova features check
 * Add code obfuscation detection
 * Improve documentation
-* Remove the is_osc from the ios issues - make it only 1 method
 * Use busy box for android operations
-"""
 
-"""
-MAKE DROZER WORK:
-export LC_ALL=POSIX
-export PYTHONPATH=$PYTHONPATH:/tmp/drozer/src
+* add shared libraries used:
+otool -L MyBanking
+MyBanking (architecture armv7):
+    /System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 1141.1.0)
+    /usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+    /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1213.0.0)
+    /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 1141.14.0)
+    /System/Library/Frameworks/CoreLocation.framework/CoreLocation (compatibility version 1.0.0, current version 1753.17.0)
+    /System/Library/Frameworks/Security.framework/Security (compatibility version 1.0.0, current version 0.0.0)
+    /System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 3318.16.14)
+MyBanking (architecture arm64):
+    /System/Library/Frameworks/Foundation.framework/Foundation (compatibility version 300.0.0, current version 1141.1.0)
+    /usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+    /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1213.0.0)
+    /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation (compatibility version 150.0.0, current version 1141.14.0)
+    /System/Library/Frameworks/CoreLocation.framework/CoreLocation (compatibility version 1.0.0, current version 1753.17.0)
+    /System/Library/Frameworks/Security.framework/Security (compatibility version 1.0.0, current version 0.0.0)
+    /System/Library/Frameworks/UIKit.framework/UIKit (compatibility version 1.0.0, current version 3318.16.14)
 
-OLD ANDROID SDK: http://dl.google.com/android/android-sdk_r23-linux.tgz
-
-sdkmanager
-wget
-unzip
-# touch ~/.android/repositories.cfg
-yes | sdkmanager --update
-yes | sdkmanager --licenses
-export ANDROID_SDK_ROOT=/android-sdk
+* parse classes and methods with:
+otool -ov MyBanking | less
 
 """
 
@@ -80,9 +83,12 @@ def _find_executables():
 
     # ios expect shell
     settings.expect      = Utils.run('which expect')[0].split('\n')[0]
+    settings.iproxy      = Utils.run('which iproxy')[0].split('\n')[0]
 
     # ios plutil for plist files
     settings.plutil      = Utils.run('which plutil')[0].split('\n')[0]
+    settings.otool       = Utils.run('which otool')[0].split('\n')[0]
+    settings.ldid        = Utils.run('which ldid')[0].split('\n')[0]
 
 def _merge_settings():
     _path.append(settings.LOCAL_SETTINGS)
@@ -120,9 +126,6 @@ def _clargs():
     iosparser.add_argument('-i', '--ipa',              required=False, metavar='/path/to/file.ipa',                            help='IPA file to install and analyse')
     iosparser.add_argument('-s', '--static-only',      required=False, default=False, action='store_true',                     help='Perform static analysis only')
 
-    iosparser.add_argument('-I', '--install',          required=False, metavar='/path/to/file.ipa',                            help='IPA file to just install')
-    iosparser.add_argument('-m', '--modify',           required=False, metavar=('binary', 'hex_find', 'hex_replace'), nargs=3, help='Finds and replaces the binary instructions on the provided binary')
-
     iosparser.add_argument('-n', '--no-install',       required=False, default=False, action='store_true',                     help='Uninstalls the app once the analysis is completed (only when `-i` is used).')
     iosparser.add_argument('-k', '--no-keep',          required=False, default=False, action='store_true',                     help='Deletes the local data (decrypted binary, pulled IPA, data files, classes, etc.) once the analysis is complete')
 
@@ -130,6 +133,9 @@ def _clargs():
     iosparser.add_argument('-o', '--output',           required=False, metavar='/path/to/output',                              help='Folder to where the tool will report')
 
     # ease of use options
+    iosparser.add_argument('-I', '--install',          required=False, metavar='/path/to/file.ipa',                            help='IPA file to just install')
+    iosparser.add_argument('-m', '--modify',           required=False, metavar=('binary', 'hex_find', 'hex_replace'), nargs=3, help='Finds and replaces the binary instructions on the provided binary')
+
     iosparser.add_argument('-u', '--update-apps',      required=False, default=False, action='store_true',                     help='Update iOS applications list')
     iosparser.add_argument('-l', '--list-apps',        required=False, default=False, action='store_true',                     help='Lists the iOS applications installed that can be assessed')
 
@@ -137,22 +143,23 @@ def _clargs():
     iosparser.add_argument('-P', '--unset-proxy',      required=False, default=False, action='store_true',                     help='Unsets the proxy on iOS preferences')
 
     # specify android apps
-    androidparser.add_argument('-i', '--apk',          required=False, metavar='apk_file',                                     help='Specify the APK file to be analysed')
     androidparser.add_argument('-a', '--package',      required=False, metavar='com.package.app',                              help='Specify the PACKAGE to be analysed')
-
+    androidparser.add_argument('-i', '--apk',          required=False, metavar='apk_file',                                     help='Specify the APK file to be analysed')
     androidparser.add_argument('-s', '--static-only',  required=False, default=False, action='store_true',                     help='Perform static analysis only')
-    androidparser.add_argument('-d', '--device',       required=False, metavar='device',                                       help='Specify the device to install the apk')
-    androidparser.add_argument('-e', '--avd',          required=False, metavar='avd',                                          help='Specify the AVD emulator image name')
-
-    # REFACTORED
-    androidparser.add_argument('-l', '--list-apps',    required=False, default=False, action='store_true',                     help='Lists the Android applications installed that can be assessed')
-    androidparser.add_argument('-g', '--compile',      required=False, metavar='/path/to/decompiled/',                         help='Specify the decompiled app to compile and sign')
 
     androidparser.add_argument('-n', '--no-install',   required=False, default=False, action='store_true',                     help='Uninstalls the application after the dynamic analysis')
     androidparser.add_argument('-k', '--no-keep',      required=False, default=False, action='store_true',                     help='Deletes the decompiled APK and all data after static analysis')
 
     androidparser.add_argument('-r', '--run-checks',   required=False, default=False, action='store_true',                     help='Performs dependency checks for Android')
     androidparser.add_argument('-o', '--output',       required=False, metavar='/path/to/output',                              help='Folder to where the tool will report')
+
+    # optional arguments
+    androidparser.add_argument('-d', '--device',       required=False, metavar='device',                                       help='Specify the device to install the apk')
+    androidparser.add_argument('-e', '--avd',          required=False, metavar='avd',                                          help='Specify the AVD emulator image name')
+
+    # ease of use options
+    androidparser.add_argument('-l', '--list-apps',    required=False, default=False, action='store_true',                     help='Lists the Android applications installed that can be assessed')
+    androidparser.add_argument('-g', '--compile',      required=False, metavar='/path/to/decompiled/',                         help='Specify the decompiled app to compile and sign')
 
     return parser.parse_args()
 
@@ -192,7 +199,7 @@ def _parse_arguments():
     # android args
     if settings.type == 'android':
         settings.device  = args.device or settings.device
-        settings.avd     = args.avd or settings.avd
+        settings.avd     = args.avd    or settings.avd
         settings.apk     = args.apk
         settings.package = args.package
         settings.compile = args.compile
@@ -225,10 +232,8 @@ def _run_ios():
         return
 
     iosutils = IOSUtils()
-    iosutils.start_tcp_relay()
-
-    #if not iosutils.check_dependencies(['connection'], True):
-        #Log.e('Error: No connection to the device.')
+    if not settings.static:
+        iosutils.start_tcp_relay()
 
     if settings.install:
         iosutils.install(settings.install)
@@ -258,18 +263,13 @@ def _run_ios():
 
     elif settings.app or settings.ipa:
         iosanalysis = IOSAnalysis(utils=iosutils, app=settings.app, ipa=settings.ipa)
-        if settings.static:
-            settings.results = iosanalysis.run_static_checks()
-        else:
-            settings.results = iosanalysis.run_analysis()
-
-        if not settings.SILENT:
-            Report.report_to_terminal()
+        settings.results = iosanalysis.run_analysis('static' if settings.static else 'full')
 
         if settings.results:
-            if not _exists(settings.output):
-                _makedirs(settings.output)
-            Report.report_to_json(iosanalysis.APP_INFO['CFBundleExecutable'])
+            report = Report(output_path=settings.output, alias=iosanalysis.APP_INFO['CFBundleExecutable'], assessment_type='iOS')
+            if not settings.SILENT:
+                report.report_to_terminal(settings.results)
+            report.report_to_json(settings.results)
 
     else:
         _die('Error: No IPA or APP specified.')
@@ -277,15 +277,17 @@ def _run_ios():
     iosutils.clean()
 
 def _run_android():
-
         androidutils = AndroidUtils()
         if settings.runchecks:
             passed= androidutils.check_dependencies(['full'], silent=False, install=True)
             Log.w('Checks passed: {result}'.format(result=passed))
             androidutils.clean()
-            _die()
+            return
 
-        REPORT = False
+        if not settings.apk and not settings.package:
+            androidutils.clean()
+            _die('Error: No APK or Package specified.')
+
         # fixes problems with APK files in same folder
         if settings.apk and '/' not in settings.apk:
             settings.apk = './{apk}'.format(apk=settings.apk)
@@ -297,70 +299,44 @@ def _run_android():
             androidutils.check_dependencies(['static', 'signing'], silent=True)
             androidutils.compile(settings.compile)
 
-        # static only
-        elif settings.static and settings.apk:
-            androidanalysis = AndroidAnalysis(androidutils, apk=settings.apk)
-            settings.results = androidanalysis.run_analysis('static')
-            REPORT = True
-
         else:
-
-            if settings.static and settings.package:
-                androidanalysis = AndroidAnalysis(androidutils, package=settings.package)
+            if settings.static:
+                androidanalysis = AndroidAnalysis(androidutils, apk=settings.apk, package=settings.package)
                 settings.results = androidanalysis.run_analysis('static')
-                REPORT = True
 
-            elif settings.apk or settings.package:
-
-                if not androidutils.online(settings.device):
+            else:
+                if not settings.device or not androidutils.online(settings.device):
+                    androidutils.clean()
                     _die('Error: Device {device} not found online'.format(device=settings.device))
 
                 androidanalysis = AndroidAnalysis(androidutils, apk=settings.apk, package=settings.package)
                 settings.results = androidanalysis.run_analysis()
 
-                REPORT = True
-
-            else:
-                androidutils.clean()
-                _die('Error: No APK or Package specified.')
+            if settings.results:
+                report = Report(output_path=settings.output, alias=androidanalysis.PACKAGE, assessment_type='Android')
+                if not settings.SILENT:
+                    report.report_to_terminal(settings.results)
+                report.report_to_json(settings.results)
 
         androidutils.clean()
 
-        if REPORT and not settings.SILENT:
-            Report.report_to_terminal()
-
-        if REPORT and settings.results:
-            if not _exists(settings.output):
-                _makedirs(settings.output)
-            Report.report_to_json(androidanalysis.PACKAGE)
-
 def _run():
-    import traceback
-
     if settings.jsonprint:
-        with open(settings.jsonprint, 'r') as f:
-            for i in _loads(f.read())['issues']:
-                issue = _ReportIssue.load(i)
-                issue.print_issue()
-
+        Report.print_report(settings.jsonprint)
     elif settings.type == 'ios':
-        try:
-            _run_ios()
-        except Exception as e:
-            Log.d(traceback.format_exc())
-            _die('Error: {error}'.format(error=e))
-
+        _run_ios()
     elif settings.type == 'android':
-        try:
-            _run_android()
-        except Exception as e:
-            Log.d(traceback.format_exc())
-            _die('Error: {error}'.format(error=e))
-
+        _run_android()
 
 def main():
+    import traceback
     _parse_arguments()
-    _run()
+
+    try:
+        _run()
+    except Exception as e:
+        Log.d(traceback.format_exc())
+        _die('Error: {error}'.format(error=e))
 
 def _default():
     _find_executables()
@@ -370,35 +346,3 @@ _default()
 if __name__ == '__main__':
     main()
 
-"""
-# TESTS
-import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/MyBanking.ipa');
-import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; mat.settings.apk = "/tmp/mat-tests/mybanking.apk"; mat.settings.device = "00cd7e67ec57c127"; androidutils = mat.AndroidUtils(); androida = mat.AndroidAnalysis(androidutils, apk=mat.settings.apk);
-
-import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/MyBanking.ipa'); r = iosa.run_analysis()
-import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; mat.settings.apk = "/tmp/mat-tests/mybanking.apk"; mat.settings.device = "00cd7e67ec57c127"; androidutils = mat.AndroidUtils(); androida = mat.AndroidAnalysis(androidutils, apk=mat.settings.apk); r = androida.run_analysis()
-
-
-from modules.ios.static.arc_support import Issue; a = Issue(iosa); a.run()
-from modules.ios.dynamic.excessive_permissions import Issue; a = Issue(iosa); a.run()
-
-from android.dynamic.drozer_pathtraversal import Issue; a = Issue(androidanalysis); a.dependencies()
-
-
-mkdir /tmp/mat-tests; cp /work/misc/MyBanking/OLD-Versions/mybanking-1.0.4.apk /tmp/mat-tests/mybanking.apk
-mkdir /tmp/mat-tests; cp /work/dev/ios/MyBanking/MyBanking.ipa /tmp/mat-tests
-
-androidutils.clean()
-iosutils.clean()
-
-import mat; mat.settings.output = "/tmp/mat-tests/mat-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/MyBanking.ipa'); r = iosa.run_static_checks()
-import mat; mat.settings.DEBUG = mat.settings.VERBOSE = True; mat.settings.output = "/tmp/mat-tests/ios-apps-output"; iosutils = mat.IOSUtils(); iosa = mat.IOSAnalysis(iosutils, ipa='/tmp/mat-tests/ios-apps/CiscoDirectory.ipa'); r = iosa.run_static_checks()
-
-        from pprint import pprint
-        print '-------------------------------------------------------------------'
-        pprint(apps)
-        pprint(app_info)
-        print name
-        print '-------------------------------------------------------------------'
-
-"""

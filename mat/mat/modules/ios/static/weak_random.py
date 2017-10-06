@@ -1,3 +1,4 @@
+import re
 from mat.utils.utils import Utils, Issue
 
 class Issue(Issue):
@@ -12,12 +13,11 @@ class Issue(Issue):
     REGEX       = r'_srand|_random'
 
     def dependencies(self):
-        return (Utils.is_osx() and self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)) or self.ANALYSIS.UTILS.check_dependencies(['dynamic'], install=True)
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
 
     def run(self):
-        symbols = Utils.symbols(self.ANALYSIS.LOCAL_WORKING_BIN) if Utils.is_osx() else self.ANALYSIS.UTILS.symbols(self.ANALYSIS.IOS_WORKING_BIN)
-        matches = re.search(self.REGEX, symbols)
+        symbols = self.ANALYSIS.UTILS.symbols(self.ANALYSIS.IOS_WORKING_BIN, self.ANALYSIS.LOCAL_WORKING_BIN)
+        matches = re.findall(self.REGEX, symbols)
         if matches:
             self.REPORT = True
-            self.DETAILS = '* {details}'.format(details='\n* '.join([match.group() for match in matches]))
-
+            self.DETAILS = '* {details}'.format(details='\n* '.join(sorted(set(matches))))

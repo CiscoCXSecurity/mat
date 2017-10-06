@@ -54,7 +54,6 @@ forward-apple-device() {
         SERIAL=$(VBoxManage list -l usbhost | grep -B 7 -A 3 -E "iPhone|iPad" | grep Serial | awk '{print $2}')
         NAME="$MANUFACTORER $PRODUCT [$REVISION]"
         if ! VBoxManage showvminfo default --machinereadable | grep USBFilterSerialNumber | grep $SERIAL &> /dev/null; then
-            #echo "VBoxManage usbfilter add 1 --target \"default\" --name \"$NAME\" --action hold --vendorid \"$VENDORID\" --productid \"$PRODUCTID\" --revision \"$REVISION\" --manufacturer \"$MANUFACTORER\" --product \"$PRODUCT\" --serialnumber \"$SERIAL\" --remote no"
             VBoxManage usbfilter add 1 --target "default" --name "$NAME" --action hold --vendorid "$VENDORID" --productid "$PRODUCTID" --revision "$REVISION" --manufacturer "$MANUFACTORER" --product "$PRODUCT" --serialnumber "$SERIAL" --remote no
         fi
     fi

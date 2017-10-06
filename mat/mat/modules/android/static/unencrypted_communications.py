@@ -11,16 +11,18 @@ class Issue(Issue):
     ISSUE_TITLE = 'Application Accesses Content Via Unencrypted Channel'
     FINDINGS    = 'The Team found the application accessed the following content over unenecrypted communications:\n'
 
+    REGEX       = r'http://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?'
+
     def dependencies(self):
         return self.ANALYSIS.UTILS.check_dependencies(['static'])
 
     def run(self):
         remove_urls = []
-        urls = Utils.grep(r'http://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?', self.ANALYSIS.LOCAL_SMALI + "*")
+        urls = Utils.grep(self.REGEX, self.ANALYSIS.LOCAL_SMALI + "*")
         if urls:
             for f in urls:
                 for finding in urls[f]:
-                    if any(ignore in finding['code'] for ignore in IGNORE):
+                    if any(ignore in finding['code'] for ignore in IGNORE) or any(e == finding['code'] for e in ['http://', 'https://']):
                         urls[f].remove(finding)
 
                 if not urls[f]:

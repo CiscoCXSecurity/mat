@@ -24,7 +24,8 @@ class IOSUtils(object):
     def __init__(self):
         self.CHECKS_PASSED = {}
         self.launched      = False
-        self.start_tcp_relay()
+        if not settings.static:
+            self.start_tcp_relay()
 
     def launch_app(self, app_info):
         if not self.launched:
@@ -66,8 +67,19 @@ class IOSUtils(object):
     def run_app(self, app_info):
         return self.run_on_ios('open {app}'.format(app=app_info['CFBundleIdentifier']))
 
-    def symbols(self, app_bin):
-        return self.run_on_ios('otool -Iv {app}'.format(app=app_bin))[0]
+    def flags(self, ios_app_bin, local_app_bin):
+        if settings.otool:
+            return Utils.run('{otool} -hv {app}'.format(otool=settings.otool, app=local_app_bin))[0]
+        elif self.check_dependencies(['connection'], silent=True, install=False):
+            return self.run_on_ios('otool -hv {app}'.format(app=ios_app_bin))[0]
+        return ''
+
+    def symbols(self, ios_app_bin, local_app_bin):
+        if settings.otool:
+            return Utils.run('{otool} -Iv {app}'.format(otool=settings.otool, app=local_app_bin))[0]
+        elif self.check_dependencies(['connection'], silent=True, install=False):
+            return self.run_on_ios('otool -Iv {app}'.format(app=ios_app_bin))[0]
+        return ''
 
     def dump_keychain(self, dest='/tmp'):
         dest = dest.replace('\ ', ' ')
@@ -75,7 +87,7 @@ class IOSUtils(object):
             Log.d('Dumping Keychain data to {dest} with {bin}'.format(bin=self.KEYCHAIN_DUMP, dest=dest))
             self.run_on_ios('cd "{working}"; {keychain}'.format(working=dest, keychain=self.KEYCHAIN_DUMP), shell=True)
         else:
-            Log.e('Error: No keychain dump binary found - was prepare_analysis run?')
+            Log.d('Error: No keychain dump binary found - was prepare_analysis run?')
 
     def dump_file_protect(self, file):
         file = file.replace('\ ', ' ')
@@ -83,21 +95,21 @@ class IOSUtils(object):
             Log.d('Dumping file protection flags of {file} with {bin}'.format(bin=self.DUMP_FILE_PROTECT, file=file))
             return self.run_on_ios('{dfp} "{file}"'.format(dfp=self.DUMP_FILE_PROTECT, file=file), shell=True)[0]
         else:
-            Log.e('Error: No file protection dump binary found - was prepare_analysis run?')
+            Log.d('Error: No file protection dump binary found - was prepare_analysis run?')
 
     def dump_log(self, app):
         if self.DUMP_LOG:
             Log.d('Dumping logs of {app} with {bin}'.format(bin=self.DUMP_LOG, app=app))
             return self.run_on_ios('{dumplog} {app}'.format(dumplog=self.DUMP_LOG, app=app))[0]
         else:
-            Log.e('Error: No dumplog binary found - was prepare_analysis run?')
+            Log.d('Error: No dumplog binary found - was prepare_analysis run?')
 
     def dump_backup_flag(self, file):
         if self.BACKUP_EXCLUDED:
             Log.d('Dumping backup flag of {file} with {bin}'.format(bin=self.BACKUP_EXCLUDED, file=file))
             return self.run_on_ios('{dbf} "{file}"'.format(dbf=self.BACKUP_EXCLUDED, file=file), shell=True)[0]
         else:
-            Log.e('Error: No backup_excluded binary found - was prepare_analysis run?')
+            Log.d('Error: No backup_excluded binary found - was prepare_analysis run?')
 
     def apt_install(self, package):
         return self.run_on_ios('apt-get -y install {package}'.format(package=package))
@@ -174,7 +186,7 @@ class IOSUtils(object):
             self.run_on_ios('activator send switch-on.com.a3tweaks.switch.wifi')
             return True
 
-        Log.e('Activator not found in the device. Please turn the WiFi off and on again manually')
+        Log.d('Activator not found in the device. Please turn the WiFi off and on again manually')
 
     def check_dependencies(self, dependencies=['full'], silent=False, install=False, force=False):
         Log.d('Checking dependencies: {dep}'.format(dep=dependencies))
@@ -183,13 +195,13 @@ class IOSUtils(object):
         # CHECK PRE REQUESITES
         ########################################################################
         if not isinstance(dependencies, list):
-            Log.e('Error: Dependencies must be a list')
+            Log.d('Error: Dependencies must be a list')
             return False
 
-        valid_dependencies   = ['full', 'connection', 'static', 'install', 'proxy']
+        valid_dependencies   = ['full', 'connection', 'static', 'install', 'proxy', 'dynamic']
         invalid_dependencies = list(set(dependencies)-set(valid_dependencies))
         if invalid_dependencies:
-            Log.e('Error: The following dependencies cannot be checked: {deps}'.format(deps=', '.join(invalid_dependencies)))
+            Log.d('Error: The following dependencies cannot be checked: {deps}'.format(deps=', '.join(invalid_dependencies)))
             return False
 
         ########################################################################
@@ -230,15 +242,11 @@ class IOSUtils(object):
             if not silent: Log.w('packages installed: {packages}'.format(packages=', '.join(list(set(required_packages) - not_installed))))
             if not silent and not_installed: Log.w('packages missing: {packages}'.format(packages=', '.join(list(not_installed))))
 
-        ########################################################################
-        # STATIC DEPENDENCIES
-        ########################################################################
-
-        if 'full' in dependencies or 'static' in dependencies:
-            self.CHECKS_PASSED['static'] = True
+        if 'full' in dependencies or 'dynamic' in dependencies:
+            self.CHECKS_PASSED['dynamic'] = True
 
             if 'connection' in self.CHECKS_PASSED and not self.CHECKS_PASSED['connection'] and 'Darwin' not in Utils.run('uname')[0]:
-                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['static'] = False
+                self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['dynamic'] = False
 
             if 'Darwin' not in Utils.run('uname')[0]:
                 if install and not self.run_on_ios('which Clutch2')[0][:-2]:
@@ -251,14 +259,21 @@ class IOSUtils(object):
 
                 clutch = self.run_on_ios('which Clutch2')[0][:-2]
                 if not clutch:
-                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['static'] = False
+                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['dynamic'] = False
                 if not silent: Log.w('iOS clutch2: {path}'.format(path=clutch.strip()))
 
-                static_dependencies = ['plutil']
-                for d in static_dependencies:
-                    if not path.exists(getattr(settings, d)):
-                        self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['static'] = False
-                    if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
+        ########################################################################
+        # STATIC DEPENDENCIES
+        ########################################################################
+
+        if 'full' in dependencies or 'static' in dependencies:
+            self.CHECKS_PASSED['static'] = True
+
+            static_dependencies = ['plutil']
+            for d in static_dependencies:
+                if not path.exists(getattr(settings, d)):
+                    self.CHECKS_PASSED['full'] = self.CHECKS_PASSED['static'] = False
+                if not silent: Log.w('{bin} path: {path}'.format(bin=d, path=getattr(settings, d)))
 
         ########################################################################
         # INSTALL DEPENDENCIES
@@ -310,11 +325,11 @@ class IOSUtils(object):
 
     def install(self, ipa):
         if not self.check_dependencies(['connection', 'install'], install=True):
-            Log.e('Error: No IPA Installer installed on the device')
+            Log.d('Error: No IPA Installer installed on the device')
             return False
 
         if not path.exists(ipa) or not path.isfile(ipa):
-            Log.e('Error: Invalid IPA file')
+            Log.d('Error: Invalid IPA file')
             return False
 
         tmp_folder = '/tmp/ipa-{uuid}'.format(uuid=uuid4())
@@ -332,7 +347,7 @@ class IOSUtils(object):
             result = self.run_on_ios('{ipai} -f -d "/tmp/{ipa}"'.format(ipai=settings.ipainstaller, ipa=name), shell=True)[0]
 
             if 'Failed' in result or 'Invalid' in result:
-                Log.e('Error: Failed to install the IPA:{result}'.format(result=result.split('\r\n')[-2:-1][0]))
+                Log.e('Error: Failed to install the IPA: {result}'.format(result=result.split('\r\n')[-2:-1][0]))
                 return False
 
             Log.w('Waiting 10 seconds for the app to finish installing')
@@ -342,7 +357,7 @@ class IOSUtils(object):
             apps = self.list_apps(silent=True)
             app  = [a for a in apps if app_path.rsplit('/', 1)[-1].lower() in apps[a]['Path'].lower()]
             if not app:
-                Log.e('Error: Couldn\'t find the installed app, try again')
+                Log.d('Error: Couldn\'t find the installed app, try again')
 
         Utils.run('rm -rf {dest}'.format(dest=tmp_folder))
 
@@ -373,7 +388,7 @@ class IOSUtils(object):
         Log.w('Pulling IPA')
 
         if not self.check_dependencies(['static', 'connection']):
-            Log.e('Error: Dependencies not met - cannot pull the app')
+            Log.d('Error: Dependencies not met - cannot pull the app')
             return False, False
 
         IOS_WORKING_BIN = IOS_IPA = None
@@ -414,7 +429,7 @@ class IOSUtils(object):
         # get produced files
         Log.d('Getting binaries from device')
         LOCAL_WORKING_BIN = '{dest}/{binary}'.format(dest=dest, binary=IOS_WORKING_BIN.rsplit('/', 1)[-1])
-        LOCAL_IPA          = '{dest}/{binary}'.format(dest=dest, binary=IOS_IPA.rsplit('/', 1)[-1])
+        LOCAL_IPA         = '{dest}/{binary}'.format(dest=dest, binary=IOS_IPA.rsplit('/', 1)[-1])
         if IOS_WORKING_BIN: self.pull(IOS_WORKING_BIN, LOCAL_WORKING_BIN)
         if IOS_IPA: self.pull(IOS_IPA, LOCAL_IPA)
 
@@ -476,7 +491,7 @@ class IOSUtils(object):
                         print('{app} :\n    APP: {bin}\n    DATA: {data}'.format(app=app, bin=apps[app]['Path'], data=apps[app]['Container']))
                 return apps
 
-        Log.e('Error: Device OS not supported - backporting to old methods')
+        Log.d('Error: Device OS not supported - backporting to old methods')
         return self._list_apps_installer(silent)
 
     def _list_apps_installer(self, silent=False):
@@ -554,18 +569,16 @@ class IOSUtils(object):
         return float(result[0][:3]) if result else None
 
     def start_tcp_relay(self):
-        if not hasattr(settings, 'tcprelay_process'):
-            #settings.tcprelay_process = Utils.run('{cmd} -t 22:2222'.format(cmd=settings.tcprelay), True, True)
+        if not hasattr(settings, 'iproxy_process'):
             if not path.exists('/var/run/usbmuxd.pid'):
                 Utils.run('usbmuxd', shell=True)
-                Log.w('Please press Trust on your device within the next 10 seconds')
+                Log.w('Please press Trust on your device within the next 10 seconds. Unplug and plug back in if no Trust popup shows up.')
                 sleep(10)
-            settings.tcprelay_process = Utils.run('iproxy 2222 22', True, True)
-            sleep(1) # tcprelay not working properly without sleep
+            settings.iproxy_process = Utils.run('{iproxy} 2222 22'.format(iproxy=settings.iproxy), shell=True, process=True)
 
     def stop_tcp_relay(self):
-        if hasattr(settings, 'tcprelay_process'):
-            settings.tcprelay_process.kill()
+        if hasattr(settings, 'iproxy_process'):
+            settings.iproxy_process.kill()
 
     def file_exists(self, file):
         file = file.replace('\ ', ' ')
@@ -576,19 +589,25 @@ class IOSUtils(object):
             self.plist_to_xml(file, ios=ios)
             return self.plist_to_dict(self.read_file(file, ios=ios))
         except Exception:
-            Log.e('Error getting the plist {file}'.format(file=file))
+            Log.d('Error getting the plist {file}'.format(file=file))
             Log.d(traceback.format_exc())
             return {}
 
     def get_info(self, path=None, ios=True):
         return self.get_plist('{app}/Info.plist'.format(app=path.replace(' ', '\ ')), ios=ios)
 
-    def get_entitlements(self, binary):
-        binary = binary.replace('\ ', ' ')
-        text = self.run_on_ios('ldid -e "{app}"'.format(app=binary))[0]
+    def get_entitlements(self, ios_binary_path, local_binary_path):
+
+        if settings.ldid:
+            text = Utils.run('{ldid} -e "{app}"'.format(ldid=settings.ldid, app=local_binary_path))
+        elif self.check_dependencies(['connection'], silent=True, install=False):
+            binary = ios_binary_path.replace('\ ', ' ') # remove the escaped spaces
+            text = self.run_on_ios('ldid -e "{app}"'.format(app=binary))[0]
+
         if text.count('</plist>') > 1:
-            stext = text.split('\r\n')
+            stext = text.replace('\r\n', '\n').split('\n')
             text = '\r\n'.join([i for i in stext[:len(stext)/2]])
+
         return self.plist_to_dict(text)
 
     def pull(self, file=None, path=None):
@@ -616,7 +635,7 @@ class IOSUtils(object):
                         result += ['armv7']
                     else:
                         result += ['other']
-                        Log.e('Other Arch found. Please check manually')
+                        Log.d('Other Arch found. Please check manually')
 
         return result
 

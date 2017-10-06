@@ -220,7 +220,7 @@ class AndroidAnalysis(object):
             issues = self.run_static_analysis()
             issues += self.run_cordova_analysis()
 
-        if any(t in analysis_type for t in ['full', 'dynamic']) and self.UTILS.check_dependencies(['dynamic'], silent=True, install=False):
+        if analysis_type != 'static' and self.UTILS.check_dependencies(['dynamic'], silent=True, install=False):
             Log.w('Starting Dynamic Analysis')
             issues += self.run_dynamic_analysis()
 

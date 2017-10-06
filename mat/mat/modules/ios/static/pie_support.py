@@ -9,7 +9,10 @@ class Issue(Issue):
     ISSUE_TITLE = 'Application Not Compiled With PIE'
     FINDINGS    = 'The Team found the application not to be compiled with PIE flag.\n'
 
+    def dependencies(self):
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], silent=True)
+
     def run(self):
-        if 'PIE' not in self.ANALYSIS.UTILS.run_on_ios('otool -hv {binary}'.format(binary=self.ANALYSIS.IOS_BIN_PATH))[0]:
+        if 'PIE' not in self.ANALYSIS.UTILS.flags(self.ANALYSIS.IOS_WORKING_BIN, self.ANALYSIS.LOCAL_WORKING_BIN):
             self.REPORT  = True
 

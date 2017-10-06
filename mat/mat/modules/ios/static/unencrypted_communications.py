@@ -4,7 +4,7 @@ IGNORE = ['www.w3', 'xmlpull.org', 'www.slf4j']
 
 class Issue(Issue):
 
-    TITLE       = 'Unencypted Communications Check'
+    TITLE       = 'Unencrypted Communications Check'
     DESCRIPTION = 'Checks if the application communicates over unencrypted channels'
 
     ID          = 'unencrypted-download'
@@ -20,7 +20,7 @@ class Issue(Issue):
         urls = Utils.strings_grep_command(source_file=self.ANALYSIS.LOCAL_WORKING_BIN, command='-E "{regex}"'.format(regex=self.REGEX))
         result = ''
         for finding in urls:
-            if any(ignore in finding['code'] for ignore in IGNORE):
+            if any(ignore in finding['code'] for ignore in IGNORE) or any(e == finding['code'] for e in ['http://', 'https://']):
                 continue
             result += '* {url}\n'.format(url=finding['code'])
 

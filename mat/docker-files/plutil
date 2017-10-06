@@ -16,9 +16,9 @@ convert_to_binary() {
 while test $# -gt 0
 do
     case "$1" in
-        xml1) convert_to_xml
+        xml1) convert_to_xml; exit 0
             ;;
-        binary1) convert_to_binary
+        binary1) convert_to_binary; exit 0
             ;;
     esac
     shift

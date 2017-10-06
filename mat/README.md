@@ -8,9 +8,33 @@ The json report can be imported to XDB using the mat import module.
 
 ## Requirements ##
 
+* adb
+
 * java
 
-* plutil (if on a mac) or iOS device with plutil
+* sdkmanager
+
+* avdmanager
+
+* emulator
+
+* rooted Android device
+
+* plutil (libplist-utils) or iOS device with plutil
+
+* iproxy (usbmux + libimobiledevice)
+
+* expect
+
+* otool / jtool
+
+* ldid
+
+* Xcode + Command Line Tools (on osx)
+
+* Jailbroken iOS device with OpenSSH installed
+
+Note: Without devices, it is still possible to run MAT with the `-s` option
 
 ## Installation ##
 

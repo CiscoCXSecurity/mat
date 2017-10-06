@@ -11,54 +11,54 @@ class Issue(Issue):
     FINDINGS    = 'The Team identified that the application did not perform emulator detection.'
 
     def dependencies(self):
-        return self.ANALYSIS.UTILS.check_dependencies(['static', 'dynamic', 'avd'], install=True)
+        return self.ANALYSIS.UTILS.check_dependencies(['static'], install=True)
 
     def run(self):
         Log.w('Checking emulator detection (this may take a while)')
+        if self.ANALYSIS.UTILS.check_dependencies(['avd'], install=True):
+            # get devices
+            devices = self.ANALYSIS.UTILS.devices()
 
-        # get devices
-        devices = self.ANALYSIS.UTILS.devices()
+            # start emulator
+            sleep(2)
+            process = Utils.emulator()
+            Log.w('Waiting for emulator to start')
+            sleep(30)
 
-        # start emulator
-        sleep(2)
-        process = Utils.emulator()
-        Log.w('Waiting for emulator to start')
-        sleep(30)
+            if self.ANALYSIS.UTILS.CREATED_AVD:
+                Log.w('AVD just created, allowing 3 more minutes before proceeding')
+                sleep(180)
 
-        if self.ANALYSIS.UTILS.CREATED_AVD:
-            Log.w('AVD just created, allowing 3 more minutes before proceeding')
-            sleep(180)
+            # diff devices -> get emulator
+            emulator = list(set(self.ANALYSIS.UTILS.devices()) - set(devices))
 
-        # diff devices -> get emulator
-        emulator = list(set(self.ANALYSIS.UTILS.devices()) - set(devices))
+            if len(emulator) == 1:
+                emulator = emulator[0]
+                Log.w('Waiting for {emulator}'.format(emulator=emulator))
+                while not self.ANALYSIS.UTILS.online(emulator):
+                    sleep(5)
 
-        if len(emulator) == 1:
-            emulator = emulator[0]
-            Log.w('Waiting for {emulator}'.format(emulator=emulator))
-            while not self.ANALYSIS.UTILS.online(emulator):
-                sleep(5)
+                if not self.ANALYSIS.UTILS.unlocked(emulator):
+                    Log.w('Please unlock the emulator')
+                while not self.ANALYSIS.UTILS.unlocked(emulator):
+                    sleep(5)
 
-            if not self.ANALYSIS.UTILS.unlocked(emulator):
-                Log.w('Please unlock the emulator')
-            while not self.ANALYSIS.UTILS.unlocked(emulator):
-                sleep(5)
+                # install and run the apk in emulator
+                self.ANALYSIS.UTILS.install_on(emulator, self.ANALYSIS.WORKING_APK_FILE)
+                self.ANALYSIS.UTILS.launch_app(device=emulator, package=self.ANALYSIS.PACKAGE)
 
-            # install and run the apk in emulator
-            self.ANALYSIS.UTILS.install_on(emulator, self.ANALYSIS.WORKING_APK_FILE)
-            self.ANALYSIS.UTILS.launch_app(device=emulator, package=self.ANALYSIS.PACKAGE)
+                Log.w('Launching the app on the emulator')
+                sleep(10)
 
-            Log.w('Launching the app on the emulator')
-            sleep(10)
+                # check if app in ps
+                if self.ANALYSIS.PACKAGE in self.ANALYSIS.UTILS.processes(emulator, root=False):
+                    self.REPORT = True
 
-            # check if app in ps
-            if self.ANALYSIS.PACKAGE in self.ANALYSIS.UTILS.processes(emulator, root=False):
-                self.REPORT = True
+            else:
+               Log.e('More than one new device detected - emulator checks not performed')
 
-        else:
-           Log.e('More than one new device detected - emulator checks not performed')
-
-        # terminate emulator
-        process.kill()
+            # terminate emulator
+            process.kill()
 
         Log.d('Checking for code that references to emulator checks')
         self.DETAILS = ''

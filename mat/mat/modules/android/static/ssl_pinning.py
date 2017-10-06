@@ -29,9 +29,9 @@ class Issue(Issue):
 
             if re.search(r'.method.*checkServerTrusted(.*\n)*?[ \t]*\.prologue\n(([\t ]*(\.line.*)?)\n)*[ \t]*return-void', smali):
                 self.REPORT = True
-                self.DETAILS += '\n* {file}:\n\n<code>{method}</code>\n'.format(file=f.replace(self.ANALYSIS.LOCAL_SMALI, 'smali'), method=self.ANALYSIS.UTILS.get_smali_method('checkServerTrusted', f))
+                self.DETAILS += '\n* {file}:\n\n<code>\n{method}</code>\n'.format(file=f.replace(self.ANALYSIS.LOCAL_SMALI, 'smali'), method=self.ANALYSIS.UTILS.get_smali_method('checkServerTrusted', f))
 
             if re.search(r'.method.*getAcceptedIssuers(.*\n)*?[ \t]*\.prologue\n(([\t ]*(\.line.*)?)\n)*[ \t]*const\/4 v0, 0x0\n[ \n\t]*return-object v0', smali):
                 self.REPORT = True
-                self.DETAILS += '\n* {file}:\n\n<code>{method}</code>\n'.format(file=f.replace(self.ANALYSIS.LOCAL_SMALI, 'smali'), method=self.ANALYSIS.UTILS.get_smali_method('getAcceptedIssuers', f))
+                self.DETAILS += '\n* {file}:\n\n<code>\n{method}</code>\n'.format(file=f.replace(self.ANALYSIS.LOCAL_SMALI, 'smali'), method=self.ANALYSIS.UTILS.get_smali_method('getAcceptedIssuers', f))
 

@@ -28,7 +28,7 @@ class AndroidUtils(object):
 
         devices = self.devices()
         if len(devices) == 0:
-            Log.e('Error: No devices connected.')
+            Log.d('Error: No devices connected.')
         settings.device = settings.device or (devices[0] if devices else None)
         self.ADB.set_device(settings.device)
 
@@ -44,7 +44,7 @@ class AndroidUtils(object):
 
     def query_provider(self, provider, projection='', selection=''):
         if '"' in projection or '"' in selection:
-            Log.e('Error: cannnot query providers with "')
+            Log.d('Error: cannnot query providers with "')
             return ('', '')
 
         projection = '--projection \\\"{projection}\\\"'.format(projection=projection) if projection else ''
@@ -166,12 +166,12 @@ class AndroidUtils(object):
 
         Log.d('Installing api with sdkmanager')
         if not any(s in Utils.run('{sdkmanager} "system-images;android-{api};google_apis;x86"'.format(sdkmanager=settings.sdkmanager, api=api), shell=True)[0] for s in ['done', '100%']):
-            Log.e('Could not install android api {api}. Install it manually.'.format(api=api))
+            Log.d('Could not install android api {api}. Install it manually.'.format(api=api))
             return False
 
         Log.d('Creating AVD {name}'.format(name=name))
         if 'Error' in Utils.run('{avdmanager} create avd -n {name} -k "system-images;android-{api};google_apis;x86" -d "Nexus 6P"'.format(avdmanager=settings.avdmanager, name=name, api=api), shell=True)[0]:
-            Log.e('Could not create AVD {name}'.format(name=name))
+            Log.d('Could not create AVD {name}'.format(name=name))
             return False
 
         avdlist = self.avds()
@@ -184,7 +184,7 @@ class AndroidUtils(object):
                 avdpath = True
 
         if not avdpath or not path.exists('{avdpath}/config.ini'.format(avdpath=avdpath)):
-            Log.e('Could not find the path for AVD {name}'.format(name=name))
+            Log.d('Could not find the path for AVD {name}'.format(name=name))
             return False
 
         Log.d('Adding hardware GPU settings')
@@ -225,7 +225,7 @@ class AndroidUtils(object):
         Log.w('Installing Busy Box On: {path}'.format(path=dest))
 
         if 'aarch64' not in self.ADB._run_on_device('shell uname -a')[0]:
-            Log.e('Error: Can\'t install busybox (not x64 arch), please do it manually')
+            Log.d('Error: Can\'t install busybox (not x64 arch), please do it manually')
             return False
 
         Log.d('Pushing busybox to: {device}'.format(device=self.ADB.DEVICE))
@@ -263,13 +263,13 @@ class AndroidUtils(object):
             Utils.run('{java} -jar {signapk} {cert} {pk8} {name} {signed}'.format(java=settings.java, signapk=settings.signjar, cert=settings.cert, pk8=settings.pk8, name=settings.apkfilename, signed=signed))
 
             if not path.exists(signed):
-                Log.e('Signing Android Application Failed')
+                Log.d('Signing Android Application Failed')
 
             Log.w('Deleting Unsigned Android Application {name}'.format(name=settings.apkfilename))
             remove(settings.apkfilename)
 
         else:
-            Log.e('Compiling Android Application Failed')
+            Log.d('Compiling Android Application Failed')
 
     def check_dependencies(self, dependencies=['full'], silent=True, install=False, force=False):
         """
@@ -283,13 +283,13 @@ class AndroidUtils(object):
         # CHECK PRE REQUESITES
         ########################################################################
         if not isinstance(dependencies, list):
-            Log.e('Error: Dependencies must be a list')
+            Log.d('Error: Dependencies must be a list')
             return False
 
         valid_dependencies   = ['full', 'static', 'dynamic', 'signing', 'avd']
         invalid_dependencies = list(set(dependencies)-set(valid_dependencies))
         if invalid_dependencies:
-            Log.e('Error: The following dependencies cannot be checked: {deps}'.format(deps=', '.join(invalid_dependencies)))
+            Log.d('Error: The following dependencies cannot be checked: {deps}'.format(deps=', '.join(invalid_dependencies)))
             return False
 
         ########################################################################
@@ -380,7 +380,7 @@ class ADB(object):
     def _run_on_device(self, command, device=None, shell=False):
         device = device or self.DEVICE
         if not device:
-            Log.e('Error: No device connected. Could not run: {command}'.format(command=command))
+            Log.d('Error: No devices connected. Could not run: {command}'.format(command=command))
             return []
         return self._run('-s {device} {command}'.format(device=device, command=command), shell=shell)
 

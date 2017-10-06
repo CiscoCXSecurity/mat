@@ -2,7 +2,7 @@ from os import getenv
 
 LOCAL_SETTINGS  = "{home}/.mat".format(home=getenv('HOME'))
 
-_VERSION = '3.2.0'
+_VERSION = '3.2.1'
 
 # files settings
 output          = 'mat-output'
@@ -29,7 +29,10 @@ emulator        = None
 sdkmanager      = None
 avdmanager      = None
 expect          = None
+iproxy          = None
 plutil          = None
+ldid            = None
+otool           = None
 
 # android files shipped with the application
 LOCAL_LIB       = '{local}/lib'.format(local=LOCAL_SETTINGS)

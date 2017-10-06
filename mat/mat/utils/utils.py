@@ -136,10 +136,6 @@ class Utils:
         return 'Darwin' in Utils.run('uname')[0]
 
     @staticmethod
-    def symbols(app_bin):
-        return Utils.run('otool -Iv {app}'.format(app=app_bin))[0]
-
-    @staticmethod
     def rmtree(top=None):
         if not top:
             return False
@@ -203,7 +199,7 @@ class Utils:
             if any([f.replace(working_path, '').startswith(i['pattern']) for i in settings.IGNORE]):
                 continue
 
-            details = "{details}\n\n* {file}".format(details=details, file=f.replace(working_path,''))
+            details = "{details}\n* {file}".format(details=details, file=f.replace(working_path,''))
             findings[f].sort()
             for d in sorted(findings[f], key=lambda k: int(k['line'])):
                 details = "{details}\n * Line {line}: {code}".format(details=details, line=d['line'], code=d['code'])
