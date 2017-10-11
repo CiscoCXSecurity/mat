@@ -1047,9 +1047,10 @@ table {
   <ul>
     <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.__init__">__init__</a></li>
     <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.clean_analysis">clean_analysis</a></li>
+    <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.get_custom_modules">get_custom_modules</a></li>
     <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.prepare_analysis">prepare_analysis</a></li>
     <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.run_analysis">run_analysis</a></li>
-    <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.run_cordova_checks">run_cordova_checks</a></li>
+    <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.run_cordova_analysis">run_cordova_analysis</a></li>
     <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.run_dynamic_analysis">run_dynamic_analysis</a></li>
     <li class="mono"><a href="#mat.analysis.android.AndroidAnalysis.run_static_analysis">run_static_analysis</a></li>
   </ul>
@@ -1092,6 +1093,8 @@ table {
 <p>PACKAGE              - The package URI of the app being analysed</p>
 <p>WORKING_APK_FILE     - Path for the APK file of the app being analysed</p>
 <p>JAR_FILE             - JAR file extracted from the DEX file of the app</p>
+<p>REMOTE_DATA_FOLDER   - Folder containing data contents of the app on the device</p>
+<p>REMOTE_APP_FOLDER    - Folder containing the app on the device</p>
 <p>UTILS                - Object with several methods to interact with the device and app</p>
 <p>MANIFEST             - Manifest object parsed from the manifest and apktool.yml files</p></div>
   <div class="source_cont">
@@ -1167,6 +1170,26 @@ table {
 
             </div>
             <div class="item">
+            <p id="mat.analysis.android.AndroidAnalysis.REMOTE_APP_FOLDER" class="name">var <span class="ident">REMOTE_APP_FOLDER</span></p>
+            
+
+            
+  
+  <div class="source_cont">
+</div>
+
+            </div>
+            <div class="item">
+            <p id="mat.analysis.android.AndroidAnalysis.REMOTE_DATA_FOLDER" class="name">var <span class="ident">REMOTE_DATA_FOLDER</span></p>
+            
+
+            
+  
+  <div class="source_cont">
+</div>
+
+            </div>
+            <div class="item">
             <p id="mat.analysis.android.AndroidAnalysis.UTILS" class="name">var <span class="ident">UTILS</span></p>
             
 
@@ -1217,6 +1240,20 @@ table {
   
             
   <div class="item">
+    <div class="name def" id="mat.analysis.android.AndroidAnalysis.get_custom_modules">
+    <p>def <span class="ident">get_custom_modules</span>(</p><p>self, modules_types=[&#39;modules/android/static&#39;, &#39;modules/android/dynamic&#39;])</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
     <div class="name def" id="mat.analysis.android.AndroidAnalysis.prepare_analysis">
     <p>def <span class="ident">prepare_analysis</span>(</p><p>self, decompile=True)</p>
     </div>
@@ -1232,7 +1269,7 @@ table {
             
   <div class="item">
     <div class="name def" id="mat.analysis.android.AndroidAnalysis.run_analysis">
-    <p>def <span class="ident">run_analysis</span>(</p><p>self, atype=&#39;full&#39;)</p>
+    <p>def <span class="ident">run_analysis</span>(</p><p>self, analysis_type=&#39;full&#39;)</p>
     </div>
     
 
@@ -1245,8 +1282,8 @@ table {
   
             
   <div class="item">
-    <div class="name def" id="mat.analysis.android.AndroidAnalysis.run_cordova_checks">
-    <p>def <span class="ident">run_cordova_checks</span>(</p><p>self)</p>
+    <div class="name def" id="mat.analysis.android.AndroidAnalysis.run_cordova_analysis">
+    <p>def <span class="ident">run_cordova_analysis</span>(</p><p>self)</p>
     </div>
     
 

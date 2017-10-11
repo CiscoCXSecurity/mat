@@ -1053,7 +1053,8 @@ table {
     <li class="mono"><a href="#mat.utils.settings.app">app</a></li>
     <li class="mono"><a href="#mat.utils.settings.avd">avd</a></li>
     <li class="mono"><a href="#mat.utils.settings.avdmanager">avdmanager</a></li>
-    <li class="mono"><a href="#mat.utils.settings.busybox_bins">busybox_bins</a></li>
+    <li class="mono"><a href="#mat.utils.settings.backup_excluded">backup_excluded</a></li>
+    <li class="mono"><a href="#mat.utils.settings.busybox">busybox</a></li>
     <li class="mono"><a href="#mat.utils.settings.cert">cert</a></li>
     <li class="mono"><a href="#mat.utils.settings.class_dump">class_dump</a></li>
     <li class="mono"><a href="#mat.utils.settings.class_dump_mac">class_dump_mac</a></li>
@@ -1061,8 +1062,6 @@ table {
     <li class="mono"><a href="#mat.utils.settings.compile">compile</a></li>
     <li class="mono"><a href="#mat.utils.settings.device">device</a></li>
     <li class="mono"><a href="#mat.utils.settings.dex2jar">dex2jar</a></li>
-    <li class="mono"><a href="#mat.utils.settings.drozer">drozer</a></li>
-    <li class="mono"><a href="#mat.utils.settings.drozer_agent">drozer_agent</a></li>
     <li class="mono"><a href="#mat.utils.settings.dump_decrypt">dump_decrypt</a></li>
     <li class="mono"><a href="#mat.utils.settings.dump_fileprot">dump_fileprot</a></li>
     <li class="mono"><a href="#mat.utils.settings.dump_log">dump_log</a></li>
@@ -1071,22 +1070,23 @@ table {
     <li class="mono"><a href="#mat.utils.settings.expect">expect</a></li>
     <li class="mono"><a href="#mat.utils.settings.file">file</a></li>
     <li class="mono"><a href="#mat.utils.settings.find">find</a></li>
-    <li class="mono"><a href="#mat.utils.settings.fsmon">fsmon</a></li>
     <li class="mono"><a href="#mat.utils.settings.grep">grep</a></li>
     <li class="mono"><a href="#mat.utils.settings.install">install</a></li>
     <li class="mono"><a href="#mat.utils.settings.ipa">ipa</a></li>
+    <li class="mono"><a href="#mat.utils.settings.iproxy">iproxy</a></li>
     <li class="mono"><a href="#mat.utils.settings.java">java</a></li>
     <li class="mono"><a href="#mat.utils.settings.jdcli">jdcli</a></li>
     <li class="mono"><a href="#mat.utils.settings.keychain_dump">keychain_dump</a></li>
+    <li class="mono"><a href="#mat.utils.settings.ldid">ldid</a></li>
     <li class="mono"><a href="#mat.utils.settings.listapps">listapps</a></li>
     <li class="mono"><a href="#mat.utils.settings.md5sum">md5sum</a></li>
     <li class="mono"><a href="#mat.utils.settings.modify">modify</a></li>
+    <li class="mono"><a href="#mat.utils.settings.otool">otool</a></li>
     <li class="mono"><a href="#mat.utils.settings.output">output</a></li>
     <li class="mono"><a href="#mat.utils.settings.package">package</a></li>
     <li class="mono"><a href="#mat.utils.settings.pk8">pk8</a></li>
     <li class="mono"><a href="#mat.utils.settings.plutil">plutil</a></li>
     <li class="mono"><a href="#mat.utils.settings.proxy">proxy</a></li>
-    <li class="mono"><a href="#mat.utils.settings.proxy_setter">proxy_setter</a></li>
     <li class="mono"><a href="#mat.utils.settings.results">results</a></li>
     <li class="mono"><a href="#mat.utils.settings.runchecks">runchecks</a></li>
     <li class="mono"><a href="#mat.utils.settings.scp_from_ios">scp_from_ios</a></li>
@@ -1096,7 +1096,6 @@ table {
     <li class="mono"><a href="#mat.utils.settings.ssh_ios">ssh_ios</a></li>
     <li class="mono"><a href="#mat.utils.settings.static">static</a></li>
     <li class="mono"><a href="#mat.utils.settings.strings">strings</a></li>
-    <li class="mono"><a href="#mat.utils.settings.tcprelay">tcprelay</a></li>
     <li class="mono"><a href="#mat.utils.settings.type">type</a></li>
     <li class="mono"><a href="#mat.utils.settings.uninstall">uninstall</a></li>
     <li class="mono"><a href="#mat.utils.settings.unproxy">unproxy</a></li>
@@ -1240,7 +1239,15 @@ table {
 
       </div>
       <div class="item">
-      <p id="mat.utils.settings.busybox_bins" class="name">var <span class="ident">busybox_bins</span></p>
+      <p id="mat.utils.settings.backup_excluded" class="name">var <span class="ident">backup_excluded</span></p>
+      
+  
+  <div class="source_cont">
+</div>
+
+      </div>
+      <div class="item">
+      <p id="mat.utils.settings.busybox" class="name">var <span class="ident">busybox</span></p>
       
   
   <div class="source_cont">
@@ -1297,22 +1304,6 @@ table {
       </div>
       <div class="item">
       <p id="mat.utils.settings.dex2jar" class="name">var <span class="ident">dex2jar</span></p>
-      
-  
-  <div class="source_cont">
-</div>
-
-      </div>
-      <div class="item">
-      <p id="mat.utils.settings.drozer" class="name">var <span class="ident">drozer</span></p>
-      
-  
-  <div class="source_cont">
-</div>
-
-      </div>
-      <div class="item">
-      <p id="mat.utils.settings.drozer_agent" class="name">var <span class="ident">drozer_agent</span></p>
       
   
   <div class="source_cont">
@@ -1384,14 +1375,6 @@ table {
 
       </div>
       <div class="item">
-      <p id="mat.utils.settings.fsmon" class="name">var <span class="ident">fsmon</span></p>
-      
-  
-  <div class="source_cont">
-</div>
-
-      </div>
-      <div class="item">
       <p id="mat.utils.settings.grep" class="name">var <span class="ident">grep</span></p>
       
   
@@ -1409,6 +1392,14 @@ table {
       </div>
       <div class="item">
       <p id="mat.utils.settings.ipa" class="name">var <span class="ident">ipa</span></p>
+      
+  
+  <div class="source_cont">
+</div>
+
+      </div>
+      <div class="item">
+      <p id="mat.utils.settings.iproxy" class="name">var <span class="ident">iproxy</span></p>
       
   
   <div class="source_cont">
@@ -1440,6 +1431,14 @@ table {
 
       </div>
       <div class="item">
+      <p id="mat.utils.settings.ldid" class="name">var <span class="ident">ldid</span></p>
+      
+  
+  <div class="source_cont">
+</div>
+
+      </div>
+      <div class="item">
       <p id="mat.utils.settings.listapps" class="name">var <span class="ident">listapps</span></p>
       
   
@@ -1457,6 +1456,14 @@ table {
       </div>
       <div class="item">
       <p id="mat.utils.settings.modify" class="name">var <span class="ident">modify</span></p>
+      
+  
+  <div class="source_cont">
+</div>
+
+      </div>
+      <div class="item">
+      <p id="mat.utils.settings.otool" class="name">var <span class="ident">otool</span></p>
       
   
   <div class="source_cont">
@@ -1497,14 +1504,6 @@ table {
       </div>
       <div class="item">
       <p id="mat.utils.settings.proxy" class="name">var <span class="ident">proxy</span></p>
-      
-  
-  <div class="source_cont">
-</div>
-
-      </div>
-      <div class="item">
-      <p id="mat.utils.settings.proxy_setter" class="name">var <span class="ident">proxy_setter</span></p>
       
   
   <div class="source_cont">
@@ -1577,14 +1576,6 @@ table {
       </div>
       <div class="item">
       <p id="mat.utils.settings.strings" class="name">var <span class="ident">strings</span></p>
-      
-  
-  <div class="source_cont">
-</div>
-
-      </div>
-      <div class="item">
-      <p id="mat.utils.settings.tcprelay" class="name">var <span class="ident">tcprelay</span></p>
       
   
   <div class="source_cont">

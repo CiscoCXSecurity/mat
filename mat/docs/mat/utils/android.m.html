@@ -1054,6 +1054,7 @@ table {
   <ul>
     <li class="mono"><a href="#mat.utils.android.ADB.__init__">__init__</a></li>
     <li class="mono"><a href="#mat.utils.android.ADB.apk">apk</a></li>
+    <li class="mono"><a href="#mat.utils.android.ADB.app_path">app_path</a></li>
     <li class="mono"><a href="#mat.utils.android.ADB.clean">clean</a></li>
     <li class="mono"><a href="#mat.utils.android.ADB.device">device</a></li>
     <li class="mono"><a href="#mat.utils.android.ADB.devices">devices</a></li>
@@ -1092,16 +1093,19 @@ table {
           
   <ul>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.__init__">__init__</a></li>
+    <li class="mono"><a href="#mat.utils.android.AndroidUtils.app_path">app_path</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.avds">avds</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.check_dependencies">check_dependencies</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.clean">clean</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.compile">compile</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.create_avd">create_avd</a></li>
+    <li class="mono"><a href="#mat.utils.android.AndroidUtils.data_path">data_path</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.device">device</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.devices">devices</a></li>
+    <li class="mono"><a href="#mat.utils.android.AndroidUtils.find_world_files">find_world_files</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.get_apk">get_apk</a></li>
-    <li class="mono"><a href="#mat.utils.android.AndroidUtils.get_drozer">get_drozer</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.get_smali_method">get_smali_method</a></li>
+    <li class="mono"><a href="#mat.utils.android.AndroidUtils.get_string">get_string</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.has">has</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.install">install</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.install_busy_box">install_busy_box</a></li>
@@ -1110,42 +1114,15 @@ table {
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.list_apps">list_apps</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.online">online</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.processes">processes</a></li>
+    <li class="mono"><a href="#mat.utils.android.AndroidUtils.providers">providers</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.pull">pull</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.pull_data_content">pull_data_content</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.push">push</a></li>
+    <li class="mono"><a href="#mat.utils.android.AndroidUtils.query_provider">query_provider</a></li>
+    <li class="mono"><a href="#mat.utils.android.AndroidUtils.read_provider">read_provider</a></li>
+    <li class="mono"><a href="#mat.utils.android.AndroidUtils.run_on_device">run_on_device</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.set_device">set_device</a></li>
-    <li class="mono"><a href="#mat.utils.android.AndroidUtils.setup_ssh">setup_ssh</a></li>
     <li class="mono"><a href="#mat.utils.android.AndroidUtils.unlocked">unlocked</a></li>
-  </ul>
-
-        </li>
-        <li class="mono">
-        <span class="class_name"><a href="#mat.utils.android.Drozer">Drozer</a></span>
-        
-          
-  <ul>
-    <li class="mono"><a href="#mat.utils.android.Drozer.parse_output">parse_output</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.__init__">__init__</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.activities">activities</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.browsable">browsable</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.codes">codes</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.info">info</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.injection">injection</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.installed">installed</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.main_activity">main_activity</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.native">native</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.providers">providers</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.readable">readable</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.receivers">receivers</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.services">services</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.start">start</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.stop">stop</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.suid">suid</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.surface">surface</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.tables">tables</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.traversal">traversal</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.uris">uris</a></li>
-    <li class="mono"><a href="#mat.utils.android.Drozer.writable">writable</a></li>
   </ul>
 
         </li>
@@ -1156,10 +1133,13 @@ table {
   <ul>
     <li class="mono"><a href="#mat.utils.android.Manifest.__init__">__init__</a></li>
     <li class="mono"><a href="#mat.utils.android.Manifest.allows_backup">allows_backup</a></li>
+    <li class="mono"><a href="#mat.utils.android.Manifest.browsable">browsable</a></li>
     <li class="mono"><a href="#mat.utils.android.Manifest.debuggable">debuggable</a></li>
     <li class="mono"><a href="#mat.utils.android.Manifest.get_sdk">get_sdk</a></li>
     <li class="mono"><a href="#mat.utils.android.Manifest.main_activity">main_activity</a></li>
     <li class="mono"><a href="#mat.utils.android.Manifest.permissions">permissions</a></li>
+    <li class="mono"><a href="#mat.utils.android.Manifest.providers">providers</a></li>
+    <li class="mono"><a href="#mat.utils.android.Manifest.secret_codes">secret_codes</a></li>
   </ul>
 
         </li>
@@ -1292,6 +1272,20 @@ table {
   <div class="item">
     <div class="name def" id="mat.utils.android.ADB.apk">
     <p>def <span class="ident">apk</span>(</p><p>self, package)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.android.ADB.app_path">
+    <p>def <span class="ident">app_path</span>(</p><p>self, package)</p>
     </div>
     
 
@@ -1768,16 +1762,6 @@ table {
 
             </div>
             <div class="item">
-            <p id="mat.utils.android.AndroidUtils.DROZER" class="name">var <span class="ident">DROZER</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-            <div class="item">
             <p id="mat.utils.android.AndroidUtils.launched" class="name">var <span class="ident">launched</span></p>
             
 
@@ -1792,6 +1776,20 @@ table {
   <div class="item">
     <div class="name def" id="mat.utils.android.AndroidUtils.__init__">
     <p>def <span class="ident">__init__</span>(</p><p>self)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.android.AndroidUtils.app_path">
+    <p>def <span class="ident">app_path</span>(</p><p>self, package)</p>
     </div>
     
 
@@ -1825,7 +1823,7 @@ table {
 
     
   
-    <div class="desc"><p>top_level_dependencies     = ['full', 'static', 'dynamic', 'signing', 'drozer', 'avd']
+    <div class="desc"><p>top_level_dependencies     = ['full', 'static', 'dynamic', 'signing', 'avd']
 binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'apktool', 'jdcli', 'dex2jar', 'signjar', 'cert', 'pk8']</p></div>
   <div class="source_cont">
 </div>
@@ -1849,7 +1847,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
             
   <div class="item">
     <div class="name def" id="mat.utils.android.AndroidUtils.compile">
-    <p>def <span class="ident">compile</span>(</p><p>self, appPath)</p>
+    <p>def <span class="ident">compile</span>(</p><p>self, app_path)</p>
     </div>
     
 
@@ -1864,6 +1862,20 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   <div class="item">
     <div class="name def" id="mat.utils.android.AndroidUtils.create_avd">
     <p>def <span class="ident">create_avd</span>(</p><p>self, name=&#39;MAT-Testing&#39;, api=&#39;26&#39;)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.android.AndroidUtils.data_path">
+    <p>def <span class="ident">data_path</span>(</p><p>self, package)</p>
     </div>
     
 
@@ -1904,6 +1916,20 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   
             
   <div class="item">
+    <div class="name def" id="mat.utils.android.AndroidUtils.find_world_files">
+    <p>def <span class="ident">find_world_files</span>(</p><p>self, starting_path, permissions=&#39;r&#39;)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
     <div class="name def" id="mat.utils.android.AndroidUtils.get_apk">
     <p>def <span class="ident">get_apk</span>(</p><p>self, package)</p>
     </div>
@@ -1918,8 +1944,8 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   
             
   <div class="item">
-    <div class="name def" id="mat.utils.android.AndroidUtils.get_drozer">
-    <p>def <span class="ident">get_drozer</span>(</p><p>self)</p>
+    <div class="name def" id="mat.utils.android.AndroidUtils.get_smali_method">
+    <p>def <span class="ident">get_smali_method</span>(</p><p>self, method=None, file=None)</p>
     </div>
     
 
@@ -1932,8 +1958,8 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   
             
   <div class="item">
-    <div class="name def" id="mat.utils.android.AndroidUtils.get_smali_method">
-    <p>def <span class="ident">get_smali_method</span>(</p><p>self, method=None, file=None)</p>
+    <div class="name def" id="mat.utils.android.AndroidUtils.get_string">
+    <p>def <span class="ident">get_string</span>(</p><p>self, name, resources_folder)</p>
     </div>
     
 
@@ -2058,6 +2084,20 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   
             
   <div class="item">
+    <div class="name def" id="mat.utils.android.AndroidUtils.providers">
+    <p>def <span class="ident">providers</span>(</p><p>self, manifest, working_folder)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
     <div class="name def" id="mat.utils.android.AndroidUtils.pull">
     <p>def <span class="ident">pull</span>(</p><p>self, file, dest)</p>
     </div>
@@ -2100,6 +2140,48 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   
             
   <div class="item">
+    <div class="name def" id="mat.utils.android.AndroidUtils.query_provider">
+    <p>def <span class="ident">query_provider</span>(</p><p>self, provider, projection=&#39;&#39;, selection=&#39;&#39;)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.android.AndroidUtils.read_provider">
+    <p>def <span class="ident">read_provider</span>(</p><p>self, provider, provider_path=&#39;&#39;)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.android.AndroidUtils.run_on_device">
+    <p>def <span class="ident">run_on_device</span>(</p><p>self, command, su=False)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
     <div class="name def" id="mat.utils.android.AndroidUtils.set_device">
     <p>def <span class="ident">set_device</span>(</p><p>self, device)</p>
     </div>
@@ -2114,412 +2196,8 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   
             
   <div class="item">
-    <div class="name def" id="mat.utils.android.AndroidUtils.setup_ssh">
-    <p>def <span class="ident">setup_ssh</span>(</p><p>self, key=None, autostart=False)</p>
-    </div>
-    
-
-    
-  
-    <div class="desc"><p>Deprecated - Used to setup proxy on android - not working on newwer versions</p></div>
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
     <div class="name def" id="mat.utils.android.AndroidUtils.unlocked">
     <p>def <span class="ident">unlocked</span>(</p><p>self, device)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-      </div>
-      </div>
-      
-      <div class="item">
-      <p id="mat.utils.android.Drozer" class="name">class <span class="ident">Drozer</span></p>
-      
-  
-  <div class="source_cont">
-</div>
-
-
-      <div class="class">
-          <h3>Ancestors (in MRO)</h3>
-          <ul class="class_list">
-          <li><a href="#mat.utils.android.Drozer">Drozer</a></li>
-          <li>__builtin__.object</li>
-          </ul>
-          <h3>Class variables</h3>
-            <div class="item">
-            <p id="mat.utils.android.Drozer.LOCAL" class="name">var <span class="ident">LOCAL</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-            <div class="item">
-            <p id="mat.utils.android.Drozer.MAIN_ACTIVITY" class="name">var <span class="ident">MAIN_ACTIVITY</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-            <div class="item">
-            <p id="mat.utils.android.Drozer.PACKAGE" class="name">var <span class="ident">PACKAGE</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-            <div class="item">
-            <p id="mat.utils.android.Drozer.REMOTE" class="name">var <span class="ident">REMOTE</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-          <h3>Static methods</h3>
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.parse_output">
-    <p>def <span class="ident">parse_output</span>(</p><p>key=None, output=None)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-          <h3>Instance variables</h3>
-            <div class="item">
-            <p id="mat.utils.android.Drozer.ADB" class="name">var <span class="ident">ADB</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-            <div class="item">
-            <p id="mat.utils.android.Drozer.DROZER" class="name">var <span class="ident">DROZER</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-          <h3>Methods</h3>
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.__init__">
-    <p>def <span class="ident">__init__</span>(</p><p>self, adb)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.activities">
-    <p>def <span class="ident">activities</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.browsable">
-    <p>def <span class="ident">browsable</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.codes">
-    <p>def <span class="ident">codes</span>(</p><p>self)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.info">
-    <p>def <span class="ident">info</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.injection">
-    <p>def <span class="ident">injection</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.installed">
-    <p>def <span class="ident">installed</span>(</p><p>self)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.main_activity">
-    <p>def <span class="ident">main_activity</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.native">
-    <p>def <span class="ident">native</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.providers">
-    <p>def <span class="ident">providers</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.readable">
-    <p>def <span class="ident">readable</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.receivers">
-    <p>def <span class="ident">receivers</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.services">
-    <p>def <span class="ident">services</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.start">
-    <p>def <span class="ident">start</span>(</p><p>self)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.stop">
-    <p>def <span class="ident">stop</span>(</p><p>self)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.suid">
-    <p>def <span class="ident">suid</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.surface">
-    <p>def <span class="ident">surface</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.tables">
-    <p>def <span class="ident">tables</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.traversal">
-    <p>def <span class="ident">traversal</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.uris">
-    <p>def <span class="ident">uris</span>(</p><p>self, package)</p>
-    </div>
-    
-
-    
-  
-  <div class="source_cont">
-</div>
-
-  </div>
-  
-            
-  <div class="item">
-    <div class="name def" id="mat.utils.android.Drozer.writable">
-    <p>def <span class="ident">writable</span>(</p><p>self, package)</p>
     </div>
     
 
@@ -2547,27 +2225,6 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
           <li><a href="#mat.utils.android.Manifest">Manifest</a></li>
           <li>__builtin__.object</li>
           </ul>
-          <h3>Class variables</h3>
-            <div class="item">
-            <p id="mat.utils.android.Manifest.NAMESPACE" class="name">var <span class="ident">NAMESPACE</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-            <div class="item">
-            <p id="mat.utils.android.Manifest.URI" class="name">var <span class="ident">URI</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
           <h3>Instance variables</h3>
             <div class="item">
             <p id="mat.utils.android.Manifest.package" class="name">var <span class="ident">package</span></p>
@@ -2580,27 +2237,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
 
             </div>
             <div class="item">
-            <p id="mat.utils.android.Manifest.root" class="name">var <span class="ident">root</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-            <div class="item">
             <p id="mat.utils.android.Manifest.version" class="name">var <span class="ident">version</span></p>
-            
-
-            
-  
-  <div class="source_cont">
-</div>
-
-            </div>
-            <div class="item">
-            <p id="mat.utils.android.Manifest.xml" class="name">var <span class="ident">xml</span></p>
             
 
             
@@ -2623,7 +2260,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
             
   <div class="item">
     <div class="name def" id="mat.utils.android.Manifest.__init__">
-    <p>def <span class="ident">__init__</span>(</p><p>self, fpath=&#39;.&#39;)</p>
+    <p>def <span class="ident">__init__</span>(</p><p>self, fpath=&#39;.&#39;, apk_file_name=&#39;unknown.apk&#39;)</p>
     </div>
     
 
@@ -2638,6 +2275,20 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   <div class="item">
     <div class="name def" id="mat.utils.android.Manifest.allows_backup">
     <p>def <span class="ident">allows_backup</span>(</p><p>self)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.android.Manifest.browsable">
+    <p>def <span class="ident">browsable</span>(</p><p>self)</p>
     </div>
     
 
@@ -2679,7 +2330,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
             
   <div class="item">
     <div class="name def" id="mat.utils.android.Manifest.main_activity">
-    <p>def <span class="ident">main_activity</span>(</p><p>self)</p>
+    <p>def <span class="ident">main_activity</span>(</p><p>self, package)</p>
     </div>
     
 
@@ -2694,6 +2345,34 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
   <div class="item">
     <div class="name def" id="mat.utils.android.Manifest.permissions">
     <p>def <span class="ident">permissions</span>(</p><p>self)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.android.Manifest.providers">
+    <p>def <span class="ident">providers</span>(</p><p>self)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.android.Manifest.secret_codes">
+    <p>def <span class="ident">secret_codes</span>(</p><p>self)</p>
     </div>
     
 
@@ -2734,7 +2413,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
             </div>
           <h3>Instance variables</h3>
             <div class="item">
-            <p id="mat.utils.android.YML.apkFileName" class="name">var <span class="ident">apkFileName</span></p>
+            <p id="mat.utils.android.YML.apk_filename" class="name">var <span class="ident">apk_filename</span></p>
             
 
             
@@ -2744,7 +2423,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
 
             </div>
             <div class="item">
-            <p id="mat.utils.android.YML.maxSDK" class="name">var <span class="ident">maxSDK</span></p>
+            <p id="mat.utils.android.YML.max_sdk" class="name">var <span class="ident">max_sdk</span></p>
             
 
             
@@ -2754,7 +2433,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
 
             </div>
             <div class="item">
-            <p id="mat.utils.android.YML.minSDK" class="name">var <span class="ident">minSDK</span></p>
+            <p id="mat.utils.android.YML.min_sdk" class="name">var <span class="ident">min_sdk</span></p>
             
 
             
@@ -2774,7 +2453,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
 
             </div>
             <div class="item">
-            <p id="mat.utils.android.YML.targetSDK" class="name">var <span class="ident">targetSDK</span></p>
+            <p id="mat.utils.android.YML.target_sdk" class="name">var <span class="ident">target_sdk</span></p>
             
 
             
@@ -2797,7 +2476,7 @@ binaries_path_dependencies = ['adb', 'sdkmanager', 'avdmanager', 'emulator', 'ap
             
   <div class="item">
     <div class="name def" id="mat.utils.android.YML.__init__">
-    <p>def <span class="ident">__init__</span>(</p><p>self, fpath=&#39;.&#39;)</p>
+    <p>def <span class="ident">__init__</span>(</p><p>self, fpath=&#39;.&#39;, apk_file_name=&#39;unkown.apk&#39;)</p>
     </div>
     
 

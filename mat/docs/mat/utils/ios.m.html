@@ -1058,11 +1058,14 @@ table {
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.check_dependencies">check_dependencies</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.clean">clean</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.delete">delete</a></li>
+    <li class="mono"><a href="#mat.utils.ios.IOSUtils.dict_key_to_xml">dict_key_to_xml</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.dict_to_plist">dict_to_plist</a></li>
+    <li class="mono"><a href="#mat.utils.ios.IOSUtils.dump_backup_flag">dump_backup_flag</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.dump_file_protect">dump_file_protect</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.dump_keychain">dump_keychain</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.dump_log">dump_log</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.file_exists">file_exists</a></li>
+    <li class="mono"><a href="#mat.utils.ios.IOSUtils.flags">flags</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.get_archs">get_archs</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.get_entitlements">get_entitlements</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.get_info">get_info</a></li>
@@ -1084,6 +1087,7 @@ table {
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.set_proxy">set_proxy</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.start_tcp_relay">start_tcp_relay</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.stop_tcp_relay">stop_tcp_relay</a></li>
+    <li class="mono"><a href="#mat.utils.ios.IOSUtils.symbols">symbols</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.unzip_to">unzip_to</a></li>
     <li class="mono"><a href="#mat.utils.ios.IOSUtils.update_apps_list">update_apps_list</a></li>
   </ul>
@@ -1286,8 +1290,36 @@ table {
   
             
   <div class="item">
+    <div class="name def" id="mat.utils.ios.IOSUtils.dict_key_to_xml">
+    <p>def <span class="ident">dict_key_to_xml</span>(</p><p>self, plist, key)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
     <div class="name def" id="mat.utils.ios.IOSUtils.dict_to_plist">
     <p>def <span class="ident">dict_to_plist</span>(</p><p>self, text)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.ios.IOSUtils.dump_backup_flag">
+    <p>def <span class="ident">dump_backup_flag</span>(</p><p>self, file)</p>
     </div>
     
 
@@ -1356,6 +1388,20 @@ table {
   
             
   <div class="item">
+    <div class="name def" id="mat.utils.ios.IOSUtils.flags">
+    <p>def <span class="ident">flags</span>(</p><p>self, ios_app_bin, local_app_bin)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
     <div class="name def" id="mat.utils.ios.IOSUtils.get_archs">
     <p>def <span class="ident">get_archs</span>(</p><p>self, binary=None)</p>
     </div>
@@ -1371,7 +1417,7 @@ table {
             
   <div class="item">
     <div class="name def" id="mat.utils.ios.IOSUtils.get_entitlements">
-    <p>def <span class="ident">get_entitlements</span>(</p><p>self, binary)</p>
+    <p>def <span class="ident">get_entitlements</span>(</p><p>self, ios_binary_path, local_binary_path)</p>
     </div>
     
 
@@ -1497,7 +1543,7 @@ table {
             
   <div class="item">
     <div class="name def" id="mat.utils.ios.IOSUtils.plist_to_dict">
-    <p>def <span class="ident">plist_to_dict</span>(</p><p>self, text=None)</p>
+    <p>def <span class="ident">plist_to_dict</span>(</p><p>self, text)</p>
     </div>
     
 
@@ -1638,6 +1684,20 @@ table {
   <div class="item">
     <div class="name def" id="mat.utils.ios.IOSUtils.stop_tcp_relay">
     <p>def <span class="ident">stop_tcp_relay</span>(</p><p>self)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.ios.IOSUtils.symbols">
+    <p>def <span class="ident">symbols</span>(</p><p>self, ios_app_bin, local_app_bin)</p>
     </div>
     
 

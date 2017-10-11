@@ -1045,6 +1045,8 @@ table {
         
           
   <ul>
+    <li class="mono"><a href="#mat.utils.report.Report.print_report">print_report</a></li>
+    <li class="mono"><a href="#mat.utils.report.Report.__init__">__init__</a></li>
     <li class="mono"><a href="#mat.utils.report.Report.report_to_json">report_to_json</a></li>
     <li class="mono"><a href="#mat.utils.report.Report.report_to_terminal">report_to_terminal</a></li>
   </ul>
@@ -1057,7 +1059,7 @@ table {
   <ul>
     <li class="mono"><a href="#mat.utils.report.ReportIssue.load">load</a></li>
     <li class="mono"><a href="#mat.utils.report.ReportIssue.__init__">__init__</a></li>
-    <li class="mono"><a href="#mat.utils.report.ReportIssue.print_issue">print_issue</a></li>
+    <li class="mono"><a href="#mat.utils.report.ReportIssue.issue">issue</a></li>
   </ul>
 
         </li>
@@ -1099,9 +1101,24 @@ table {
           <ul class="class_list">
           <li><a href="#mat.utils.report.Report">Report</a></li>
           </ul>
-          <h3>Class variables</h3>
+          <h3>Static methods</h3>
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.report.Report.print_report">
+    <p>def <span class="ident">print_report</span>(</p><p>location)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
+          <h3>Instance variables</h3>
             <div class="item">
-            <p id="mat.utils.report.Report.FILENAME" class="name">var <span class="ident">FILENAME</span></p>
+            <p id="mat.utils.report.Report.ALIAS" class="name">var <span class="ident">ALIAS</span></p>
             
 
             
@@ -1110,11 +1127,45 @@ table {
 </div>
 
             </div>
-          <h3>Static methods</h3>
+            <div class="item">
+            <p id="mat.utils.report.Report.ASESSMENT_TYPE" class="name">var <span class="ident">ASESSMENT_TYPE</span></p>
+            
+
+            
+  
+  <div class="source_cont">
+</div>
+
+            </div>
+            <div class="item">
+            <p id="mat.utils.report.Report.OUTPUT_PATH" class="name">var <span class="ident">OUTPUT_PATH</span></p>
+            
+
+            
+  
+  <div class="source_cont">
+</div>
+
+            </div>
+          <h3>Methods</h3>
+            
+  <div class="item">
+    <div class="name def" id="mat.utils.report.Report.__init__">
+    <p>def <span class="ident">__init__</span>(</p><p>self, output_path, alias, assessment_type)</p>
+    </div>
+    
+
+    
+  
+  <div class="source_cont">
+</div>
+
+  </div>
+  
             
   <div class="item">
     <div class="name def" id="mat.utils.report.Report.report_to_json">
-    <p>def <span class="ident">report_to_json</span>(</p><p>alias=None)</p>
+    <p>def <span class="ident">report_to_json</span>(</p><p>self, results)</p>
     </div>
     
 
@@ -1128,7 +1179,7 @@ table {
             
   <div class="item">
     <div class="name def" id="mat.utils.report.Report.report_to_terminal">
-    <p>def <span class="ident">report_to_terminal</span>(</p><p>)</p>
+    <p>def <span class="ident">report_to_terminal</span>(</p><p>self, results)</p>
     </div>
     
 
@@ -1159,7 +1210,7 @@ table {
             
   <div class="item">
     <div class="name def" id="mat.utils.report.ReportIssue.load">
-    <p>def <span class="ident">load</span>(</p><p>issue=None)</p>
+    <p>def <span class="ident">load</span>(</p><p>issue)</p>
     </div>
     
 
@@ -1228,13 +1279,26 @@ table {
   
             
   <div class="item">
-    <div class="name def" id="mat.utils.report.ReportIssue.print_issue">
-    <p>def <span class="ident">print_issue</span>(</p><p>self, tprint=True)</p>
+    <div class="name def" id="mat.utils.report.ReportIssue.issue">
+    <p>def <span class="ident">issue</span>(</p><p>self)</p>
     </div>
     
 
     
   
+    <div class="desc"><p>result =  '---------------------------------- ISSUE ----------------------------------
+'
+        result += 'TITLE:
+{title}
+'.format(title=self.ISSUE_TITLE)
+        result += 'FINDINGS:
+{findings}
+'.format(findings=self.FINDINGS)
+        result += 'FINDING DETAILS:
+{details}
+'.format(details=self.DETAILS)
+        result += '----------------------------------  END  ----------------------------------
+'</p></div>
   <div class="source_cont">
 </div>
 
