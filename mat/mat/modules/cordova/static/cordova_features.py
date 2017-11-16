@@ -6,8 +6,8 @@ class Issue(Issue):
     DESCRIPTION = 'Checks if the cordova framework uses insecure features'
 
     ID          = 'insecure-features'
-    ISSUE_TITLE = 'Application Uses Insecure Cordova Features'
-    FINDINGS    = 'The Team found that the Cordova framework used contained insecure features:\n'
+    ISSUE_TITLE = 'Application Uses Potential Insecure Cordova Features'
+    FINDINGS    = 'The Team found that the Cordova framework contained potential insecure features:\n'
 
     def dependencies(self):
         return True
@@ -19,11 +19,19 @@ class Issue(Issue):
             with open(self.ANALYSIS.CONFIG_FILE, 'r') as f:
                 config = f.read()
 
+            save = None
             for line in config.split('\n'):
-                if '<feature name=' in line:
-                    features += [line.strip()]
+                if '</feature' in line:
+                    features += [save + '\n' + line]
+                    print "SAVED: " + line
+                    save = None
+                elif not save and '<feature name=' in line:
+                    print "FOUND: " + line
+                    save = line
+                elif save:
+                    print "ADDING: " + line
+                    save += '\n' + line
 
         if features:
-            # TODO: not reporting self.FEATURES just yet - need to check which are actually dangerous
-            pass
-
+            self.REPORT = True
+            self.DETAILS = '<code>\n{details}\n</code>'.format(details='\n'.join(features))

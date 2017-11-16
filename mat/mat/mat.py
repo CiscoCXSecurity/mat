@@ -20,7 +20,6 @@ from analysis.ios import IOSAnalysis
 """
 TODO
 * Add interactive mode
-* Finish Cordova features check
 * Add code obfuscation detection
 * Improve documentation
 * Use busy box for android operations

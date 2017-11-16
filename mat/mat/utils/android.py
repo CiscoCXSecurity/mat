@@ -479,6 +479,7 @@ class ADB(object):
         return package.split(':', 1)[1] if package else package
 
     def app_path(self, package):
+        if not self.device() or not self.online(self.device()): return None
         package = self._run_on_device('shell pm path {package}'.format(package=package))[0]
         return package.split(':', 1)[1].rsplit('/', 1)[0] if package else package
 

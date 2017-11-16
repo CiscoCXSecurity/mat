@@ -19,6 +19,6 @@ class Issue(Issue):
             report_activities = list(set(activities) - set(safe_activities))
 
         if report_activities:
-            self.DETAILS = '* {details}'.format(details='\n* '.join([a.replace(self.ANALYSIS.LOCAL_SOURCE, '') for a in report_activities]))
+            self.DETAILS = '* {details}'.format(details='\n* '.join([a.replace(self.ANALYSIS.LOCAL_SOURCE, '') for a in sorted(report_activities)]))
             self.REPORT  = True
 
