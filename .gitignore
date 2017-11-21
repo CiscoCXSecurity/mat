@@ -1,0 +1,9 @@
+jd-gui.cfg
+*.apk
+!drozer-agent.apk
+*.pyc
+tests/
+build/
+mat-output/
+*.egg-info/
+.DS_Store

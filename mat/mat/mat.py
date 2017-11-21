@@ -46,6 +46,10 @@ MyBanking (architecture arm64):
 * parse classes and methods with:
 otool -ov MyBanking | less
 
+
+-> MAKE SURE ACTIVITIES ARE EXPORTED
+-> dump all activities, providers services and permission
+-> minimum iOS version supported
 """
 
 

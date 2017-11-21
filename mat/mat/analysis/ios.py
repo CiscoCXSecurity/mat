@@ -136,11 +136,17 @@ class IOSAnalysis(object):
         self.LOCAL_CLASS_DUMP = '{base}/{app}'.format(base=self.LOCAL_CLASS_DUMP, app=self.APP_INFO['CFBundleExecutable'])
 
         # get classes
+        ########################## TESTING #####################################
+        if not path.exists(self.LOCAL_CLASS_DUMP): makedirs(self.LOCAL_CLASS_DUMP)
+        self.UTILS.dump_classes_to_file(self.UTILS.dump_classes(self.LOCAL_WORKING_BIN), self.LOCAL_CLASS_DUMP)
+        ########################## END     #####################################
+        """
         if Utils.is_osx():
             Utils.run('{classdumpmac} -H {localbin} -o {localclassdump}'.format(classdumpmac=settings.class_dump_mac, localbin=self.LOCAL_WORKING_BIN, localclassdump=self.LOCAL_CLASS_DUMP))
         elif self.UTILS.check_dependencies(['connection'], install=False, silent=True):
             result = self.UTILS.run_on_ios('{classdump} -H "{binary}" -o {working}/app-class-dump/'.format(classdump=self.UTILS.CLASS_DUMP, binary=self.IOS_BIN_PATH, working=self.IOS_WORKING_FOLDER))
             self.UTILS.pull('{working}/app-class-dump/'.format(working=self.IOS_WORKING_FOLDER), self.LOCAL_CLASS_DUMP)
+        """
 
         return True #and self.UTILS.check_dependencies(['full'], install=False, silent=True)
 

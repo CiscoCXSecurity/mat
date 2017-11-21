@@ -2,7 +2,7 @@ from os import getenv
 
 LOCAL_SETTINGS  = "{home}/.mat".format(home=getenv('HOME'))
 
-_VERSION = '3.2.1'
+_VERSION = '3.2.2'
 
 # files settings
 output          = 'mat-output'
