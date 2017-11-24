@@ -23,13 +23,10 @@ class Issue(Issue):
             for line in config.split('\n'):
                 if '</feature' in line:
                     features += [save + '\n' + line]
-                    print "SAVED: " + line
                     save = None
                 elif not save and '<feature name=' in line:
-                    print "FOUND: " + line
                     save = line
                 elif save:
-                    print "ADDING: " + line
                     save += '\n' + line
 
         if features:

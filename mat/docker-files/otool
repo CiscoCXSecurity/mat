@@ -23,12 +23,24 @@ flags() {
     fi
 }
 
+classes() {
+    result=$(/usr/local/bin/jtool -v -d objc $filename 2>&1)
+    if echo $result | grep "Specify one of these architectures" &> /dev/null; then
+        arch=$(echo $result | grep -oE "arm(v6|v7|64)")
+        /usr/local/bin/jtool -v -d objc -arch $arch $filename
+    else
+        /usr/local/bin/jtool -v -d objc $filename
+    fi
+}
+
 while test $# -gt 0
 do
     case "$1" in
         -Iv) symbols; exit 0
             ;;
         -hv) flags; exit 0
+            ;;
+        -ov) classes; exit 0
             ;;
     esac
     shift

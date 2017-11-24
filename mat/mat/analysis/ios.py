@@ -84,7 +84,6 @@ class IOSAnalysis(object):
             self.UTILS.push(settings.dump_log, self.IOS_WORKING_FOLDER)
             self.UTILS.push(settings.dump_fileprot, self.IOS_WORKING_FOLDER)
             self.UTILS.push(settings.dump_decrypt, self.IOS_WORKING_FOLDER)
-            self.UTILS.push(settings.class_dump, self.IOS_WORKING_FOLDER)
             self.UTILS.push(settings.keychain_dump, self.IOS_WORKING_FOLDER)
             self.UTILS.push(settings.backup_excluded, self.IOS_WORKING_FOLDER)
 
@@ -93,7 +92,6 @@ class IOSAnalysis(object):
             self.UTILS.KEYCHAIN_DUMP     = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.keychain_dump.rsplit('/', 1)[1])
             self.UTILS.DUMP_FILE_PROTECT = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.dump_fileprot.rsplit('/', 1)[1])
             self.UTILS.DUMP_LOG          = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.dump_log.rsplit('/', 1)[1])
-            self.UTILS.CLASS_DUMP        = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.class_dump.rsplit('/', 1)[1])
             self.UTILS.BACKUP_EXCLUDED   = '{working}/{binary}'.format(working=self.IOS_WORKING_FOLDER, binary=settings.backup_excluded.rsplit('/', 1)[1])
 
         if self.APP: # no need to check if there's connection - it will return None if there's no connection
@@ -140,13 +138,6 @@ class IOSAnalysis(object):
         if not path.exists(self.LOCAL_CLASS_DUMP): makedirs(self.LOCAL_CLASS_DUMP)
         self.UTILS.dump_classes_to_file(self.UTILS.dump_classes(self.LOCAL_WORKING_BIN), self.LOCAL_CLASS_DUMP)
         ########################## END     #####################################
-        """
-        if Utils.is_osx():
-            Utils.run('{classdumpmac} -H {localbin} -o {localclassdump}'.format(classdumpmac=settings.class_dump_mac, localbin=self.LOCAL_WORKING_BIN, localclassdump=self.LOCAL_CLASS_DUMP))
-        elif self.UTILS.check_dependencies(['connection'], install=False, silent=True):
-            result = self.UTILS.run_on_ios('{classdump} -H "{binary}" -o {working}/app-class-dump/'.format(classdump=self.UTILS.CLASS_DUMP, binary=self.IOS_BIN_PATH, working=self.IOS_WORKING_FOLDER))
-            self.UTILS.pull('{working}/app-class-dump/'.format(working=self.IOS_WORKING_FOLDER), self.LOCAL_CLASS_DUMP)
-        """
 
         return True #and self.UTILS.check_dependencies(['full'], install=False, silent=True)
 

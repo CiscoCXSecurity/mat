@@ -2,7 +2,7 @@ from os import getenv
 
 LOCAL_SETTINGS  = "{home}/.mat".format(home=getenv('HOME'))
 
-_VERSION = '3.2.2'
+_VERSION = '3.2.3'
 
 # files settings
 output          = 'mat-output'
@@ -47,8 +47,6 @@ ssh_ios         = '{lib}/sshios'.format(lib=LOCAL_LIB)
 scp_to_ios      = '{lib}/scptoios'.format(lib=LOCAL_LIB)
 scp_from_ios    = '{lib}/scpfromios'.format(lib=LOCAL_LIB)
 dump_decrypt    = '{lib}/dumpdecrypted.dylib'.format(lib=LOCAL_LIB)
-class_dump      = '{lib}/class-dump'.format(lib=LOCAL_LIB)
-class_dump_mac  = '{lib}/class-dump-macos'.format(lib=LOCAL_LIB)
 keychain_dump   = '{lib}/keychain_dump'.format(lib=LOCAL_LIB)
 backup_excluded = '{lib}/backup_excluded'.format(lib=LOCAL_LIB)
 

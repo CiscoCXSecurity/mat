@@ -75,21 +75,29 @@ class IOSUtils(object):
         return ''
 
     def dump_otool_classes(self, result):
-        # v = void, c = Bool, i = long long, @ = id
-        otypes = {'v': 'void', 'f': 'float', 'i': 'long long', 'c': 'Bool', '#': 'Class', '*': 'char * '}
-
         found_classes = []
         parsing = method_name = parsed_property = ''
         parsed_class = {}
+        meta = False
         for line in result.split('\n'):
             if 'Meta Class' in line:
+                meta = True
+
+            if meta and 'baseProperties 0x0' in line:
                 method_name = parsed_property = ''
-                found_classes += [parsed_class]
+
+                if 'name' in parsed_class:
+                    found_classes += [parsed_class]
                 parsed_class = {}
+                meta = False
 
             elif '_OBJC_CLASS_' in line:
                 parsed_class['name'] = line.rsplit('$', 1)[-1].strip()[1:]
                 parsing = 'class'
+            elif 'struct class_ro_t' in line:
+                parsing = 'class'
+            elif parsing == 'class' and 'name' in line:
+                parsed_class['name'] = line.strip().rsplit(' ', 1)[-1].strip()
 
             elif parsing == 'base_properties' and parsed_property and 'attributes' in line:
                 ptype, attrs = self.dump_attributes_property(line)
@@ -99,36 +107,46 @@ class IOSUtils(object):
                 parsed_property = line.strip().rsplit(' ', 1)[-1]
             elif 'baseProperties' in line:
                 parsing = 'base_properties'
-                parsed_class['base_properties'] = []
+                if 'base_properties' not in parsed_class: parsed_class['base_properties'] = []
 
             elif parsing == 'instance_properties' and parsed_property and 'type' in line:
-                ptype = line.rsplit(' ', 1)[-1]
-                parsed_class['instance_properties'] += ['{t} {n};'.format(t=otypes[ptype[0]] if ptype[0] in otypes else '{t} *'.format(t=ptype.split('"')[-2]), n=parsed_property)]
+                ptype = line.strip().rsplit(' ', 1)[-1]
+                parsed_class['instance_properties'] += ['{t} {n};'.format(t=self.dump_attr_type(ptype), n=parsed_property)]
                 parsed_property = ''
             elif parsing == 'instance_properties' and 'name' in line:
                 parsed_property = line.strip().rsplit(' ', 1)[-1]
             elif 'instanceProperties' in line:
                 parsing = 'instance_properties'
-                parsed_class['instance_properties'] = []
+                if 'instance_properties' not in parsed_class: parsed_class['instance_properties'] = []
+
+            elif parsing == 'instance_methods' and method_name and 'types' in line:
+                types = self.dump_class_types(line.strip().split(' ', 2)[-1])
+                parsed_class['instance_methods'] += ['+ ({rvalue}){name};'.format(rvalue=types[0], name=self.dump_method_name(method_name, types[1:]))]
+                method_name = ''
+            elif parsing == 'instance_methods' and 'name' in line:
+                method_name = line.strip().rsplit(' ', 1)[-1]
+            elif 'instanceMethods' in line:
+                if 'instance_methods' not in parsed_class: parsed_class['instance_methods'] = []
+                parsing = 'instance_methods'
 
             elif parsing == 'protocols' and parsed_property and 'type' in line:
-                ptype = line.rsplit(' ', 1)[-1]
-                parsed_class['protocols'] += ['{t} {n};'.format(t=otypes[ptype[0]] if ptype[0] in otypes else '{t} *'.format(t=ptype.split('"')[-2]), n=parsed_property)]
+                ptype = line.strip().rsplit(' ', 1)[-1]
+                parsed_class['protocols'] += ['{t} {n};'.format(t=self.dump_attr_type(ptype), n=parsed_property)]
                 parsed_property = ''
             elif parsing == 'protocols' and 'name' in line:
                 parsed_property = line.strip().rsplit(' ', 1)[-1]
             elif 'baseProtocols' in line:
                 parsing = 'protocols'
-                parsed_class['protocols'] = []
+                if 'protocols' not in parsed_class: parsed_class['protocols'] = []
 
             elif parsing == 'methods' and method_name and 'types' in line:
-                types = self.dump_class_types(line.rsplit(' ', 1)[-1])
+                types = self.dump_class_types(line.strip().split(' ', 2)[-1])
                 parsed_class['methods'] += ['- ({rvalue}){name};'.format(rvalue=types[0], name=self.dump_method_name(method_name, types[1:]))]
                 method_name = ''
             elif parsing == 'methods' and 'name' in line:
                 method_name = line.strip().rsplit(' ', 1)[-1]
             elif 'baseMethods' in line:
-                parsed_class['methods'] = []
+                if 'methods' not in parsed_class: parsed_class['methods'] = []
                 parsing = 'methods'
 
             elif 'Contents of' in line and not "Contents of (__DATA,__objc_classlist) section" in line:
@@ -149,8 +167,6 @@ class IOSUtils(object):
         return found_classes
 
     def dump_jtool_classes(self, result):
-        otypes = {'v': 'void', 'f': 'float', 'i': 'long long', 'c': 'Bool', '#': 'Class', '*': 'char * '}
-
         #/usr/local/bin/jtool -v -d objc -arch armv7 /tmp/MB
         found_classes = []
         parsed_class = {}
@@ -170,14 +186,13 @@ class IOSUtils(object):
 
             elif 'properties' in line and '//' in line:
                 parsing = 'properties'
-
             elif 'instance variables' in line and '//' in line:
                 parsing = 'instance_variables'
                 parsed_class['instance_properties'] = []
             elif parsing == 'instance_variables' and '/*' in line:
                 name = line.split(';', 1)[0].rsplit(' ', 1)[-1].replace('*', '')
                 ptype = line.rsplit('// ', 1)[-1]
-                parsed_class['instance_properties'] += ['{t} {n};'.format(t=otypes[ptype[0]] if ptype[0] in otypes else '{t} *'.format(t=ptype.split('"')[-2]), n=name)]
+                parsed_class['instance_properties'] += ['{t} {n};'.format(t=self.dump_attr_type(ptype), n=name)]
 
             elif 'instance methods' in line and '//' in line:
                 parsing = 'methods'
@@ -190,27 +205,63 @@ class IOSUtils(object):
         return found_classes
 
     def dump_class_types(self, string):
-        types = {'v': 'void', 'f': 'float', 'I': 'unsigned int', 'i': 'long long', 'c': 'Bool', '@': 'id', '.': 'UnknownType', '#': 'Class', '*': 'char * '}
-        return [types[i] for i in string.replace('@0:', '').replace('@?', '.') if i in types]
+        types = {
+            'v': 'void', 'f': 'float', 'S': 'short', 's': 'short',
+            'I': 'unsigned int', 'i': 'long long', 'd': 'double', 'B': 'Bool',
+            'l': 'long', 'L': 'long', 'c': 'Bool', 'Q': 'Bool', '@': 'id',
+            '.': 'UnknownType', '#': 'Class', '*': 'char * ', ':': 'SEL',
+            'C': 'unsigned char', 'q': 'long long'
+        }
+
+        ntypes = []
+        ignore = 0
+        saved_type = ''
+        for i in string.replace('@0:', '').replace('@?', '.').replace('^?', '.'):
+
+            if '{' in i:
+                ignore += 1
+                if ignore == 1:
+                    saved_type = '_'
+            elif '=' in i and saved_type:
+                ntypes += ['struct {t}'.format(t=saved_type[1:])]
+                saved_type = ''
+            elif saved_type and ignore > 0:
+                saved_type += i
+            elif '}' in i:
+                ignore -= 1
+            elif i in types and ignore == 0:
+                ntypes += [types[i]]
+
+        return ntypes
 
     def dump_method_name(self, name, types):
         if len(types) == 0:
             return name.replace(':', '')
 
+        # TODO: needs fixing -> just hammering mistakes
+        while name.count(':') > len(types):
+            types += ['void']
+
         return ' '.join(['{n}:({t})arg{i}'.format(n=a, t=types[i], i=(i+1)) for i, a in enumerate(name.split(':')[:-1])])
+
+    def dump_attr_type(self, string):
+        if string[0] == 'T':
+            string = string[1:]
+
+        if string.startswith('@"'):
+            return '{n} *'.format(n=string.split('"')[-2])
+
+        types = self.dump_class_types(string)
+        return types[0] if len(types) > 0 else "id"
 
     def dump_attributes_property(self, attrs):
         attributes = {'N': 'nonantomic', 'R': 'readonly', 'C': 'copy', '&': 'retain'}
-        types = {'V': 'void', 'F': 'float', 'I': 'long long', 'c': 'Bool', '#': 'Class', '*': 'char * '}
-
         attrs = attrs.rsplit(' ', 1)[-1].split(',')
-        ptype = types[attrs[0][1]] if attrs[0][1] in types else '{t} *'.format(t=attrs[0].split('"')[-2])
-
-        return ptype, '({attrs}){weak}'.format(weak=' __weak' if 'W' in attrs else '', attrs=', '.join([attributes[a] for a in attrs[1:] if a in attributes]))
+        return self.dump_attr_type(attrs[0]), '({attrs}){weak}'.format(weak=' __weak' if 'W' in attrs else '', attrs=', '.join([attributes[a] for a in attrs[1:] if a in attributes]))
 
     def dump_classes(self, local_app_bin):
         result = Utils.run('{otool} -ov {app}'.format(otool=settings.otool, app=local_app_bin))[0]
-        return dump_jtool_classes(result) if 'Dumping class' in result else dump_otool_classes(result)
+        return self.dump_jtool_classes(result) if 'Dumping class' in result else self.dump_otool_classes(result)
 
     def dump_classes_to_file(self, classes, rootpath):
         for a in classes:
@@ -223,6 +274,8 @@ class IOSUtils(object):
                 f.write('\n'.join(a['base_properties']) if 'base_properties' in a else '')
                 f.write('\n\n// methods\n')
                 f.write('\n'.join(a['methods']) if 'methods' in a else '')
+                f.write('\n\n// instance methods\n')
+                f.write('\n'.join(a['instance_methods']) if 'instance_methods' in a else '')
 
     def symbols(self, ios_app_bin, local_app_bin):
         if settings.otool:
