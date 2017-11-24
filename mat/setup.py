@@ -24,7 +24,7 @@ LIB_FILES         = [
     'dump_fileprotection', 'dump_log', 'dumpdecrypted.dylib', 'jd-cli',
     'jd-cli.jar', 'scptoios', 'signing/cert.x509.pem', 'signing/key.pk8',
     'signing/signapk.jar', 'sshios',
-    'class-dump', 'class-dump-macos', 'scpfromios', 'keychain_dump',
+    'scpfromios', 'keychain_dump',
     'busybox', 'backup_excluded'
 ]
 

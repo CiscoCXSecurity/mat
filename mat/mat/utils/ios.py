@@ -69,7 +69,7 @@ class IOSUtils(object):
 
     def flags(self, ios_app_bin, local_app_bin):
         if settings.otool:
-            return Utils.run('{otool} -hv {app}'.format(otool=settings.otool, app=local_app_bin))[0]
+            return Utils.run('{otool} -hv "{app}"'.format(otool=settings.otool, app=local_app_bin), shell=True)[0]
         elif self.check_dependencies(['connection'], silent=True, install=False):
             return self.run_on_ios('otool -hv {app}'.format(app=ios_app_bin))[0]
         return ''
@@ -260,7 +260,7 @@ class IOSUtils(object):
         return self.dump_attr_type(attrs[0]), '({attrs}){weak}'.format(weak=' __weak' if 'W' in attrs else '', attrs=', '.join([attributes[a] for a in attrs[1:] if a in attributes]))
 
     def dump_classes(self, local_app_bin):
-        result = Utils.run('{otool} -ov {app}'.format(otool=settings.otool, app=local_app_bin))[0]
+        result = Utils.run('{otool} -ov "{app}"'.format(otool=settings.otool, app=local_app_bin), shell=True)[0]
         return self.dump_jtool_classes(result) if 'Dumping class' in result else self.dump_otool_classes(result)
 
     def dump_classes_to_file(self, classes, rootpath):
@@ -279,7 +279,7 @@ class IOSUtils(object):
 
     def symbols(self, ios_app_bin, local_app_bin):
         if settings.otool:
-            return Utils.run('{otool} -Iv {app}'.format(otool=settings.otool, app=local_app_bin))[0]
+            return Utils.run('{otool} -Iv "{app}"'.format(otool=settings.otool, app=local_app_bin), shell=True)[0]
         elif self.check_dependencies(['connection'], silent=True, install=False):
             return self.run_on_ios('otool -Iv {app}'.format(app=ios_app_bin))[0]
         return ''

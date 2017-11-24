@@ -1,35 +1,35 @@
 #! /bin/bash
 
 args=$@
-filename=${!#}
+filename=$(echo $args | cut -d ' ' -f2- )
 
 symbols() {
-    result=$(/usr/local/bin/jtool -S $filename 2>&1)
+    result=$(/usr/local/bin/jtool -S "$filename" 2>&1)
     if echo $result | grep "Specify one of these architectures" &> /dev/null; then
         arch=$(echo $result | grep -oE "arm(v6|v7|64)")
-        /usr/local/bin/jtool -S -arch $arch $filename
+        /usr/local/bin/jtool -S -arch $arch "$filename"
     else
-        /usr/local/bin/jtool -S $filename
+        /usr/local/bin/jtool -S "$filename"
     fi
 }
 
 flags() {
-    result=$(/usr/local/bin/jtool -v -h $filename 2>&1)
+    result=$(/usr/local/bin/jtool -v -h "$filename" 2>&1)
     if echo $result | grep "Specify one of these architectures" &> /dev/null; then
         arch=$(echo $result | grep -oE "arm(v6|v7|64)")
-        /usr/local/bin/jtool -v -h -arch $arch $filename
+        /usr/local/bin/jtool -v -h -arch $arch "$filename"
     else
-        /usr/local/bin/jtool -v -h $filename
+        /usr/local/bin/jtool -v -h "$filename"
     fi
 }
 
 classes() {
-    result=$(/usr/local/bin/jtool -v -d objc $filename 2>&1)
+    result=$(/usr/local/bin/jtool -v -d objc "$filename" 2>&1)
     if echo $result | grep "Specify one of these architectures" &> /dev/null; then
         arch=$(echo $result | grep -oE "arm(v6|v7|64)")
-        /usr/local/bin/jtool -v -d objc -arch $arch $filename
+        /usr/local/bin/jtool -v -d objc -arch $arch "$filename"
     else
-        /usr/local/bin/jtool -v -d objc $filename
+        /usr/local/bin/jtool -v -d objc "$filename"
     fi
 }
 
