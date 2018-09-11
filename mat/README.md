@@ -1,6 +1,6 @@
 # Mobile Assessment Tool #
 
-Mobile Assessment Tool or MAT is a tool that automatises an Android or IOS application assessment by performing some static and dynamic checks and producing a JSON report in the end.
+Mobile Assessment Tool or MAT is a tool that automates an Android or IOS application assessment by performing some static and dynamic checks and producing a JSON report in the end.
 
 The json report can be imported to XDB using the mat import module.
 
