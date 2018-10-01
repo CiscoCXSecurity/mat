@@ -100,7 +100,8 @@ usage: mat [-h] [-S] [-D] [-J file] {ios,android} ...
          |_|  |_|/_/   \_\|_|
                     Mobile Assessment Tool v3.1.5
 
-  Copyright 2017 - Portcullis, https://www.portcullis-security.com
+  Copyright (c) 2014-2015, Portcullis Computer Security Ltd
+  Copyright (c) 2015-2018, Cisco International Ltd
 
   Your local settings will be under /Users/user/.mat/mat_settings.py.
 
