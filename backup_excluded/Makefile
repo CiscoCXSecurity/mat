@@ -10,5 +10,5 @@ clean:
 	rm -f *.o backup_excluded
 
 install:
-	ldid -S backup_excluded
 	scp backup_excluded ios:/usr/local/bin/backup_excluded
+	ssh ios ldid -S /usr/local/bin/backup_excluded
