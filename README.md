@@ -1,5 +1,5 @@
-# Cisco Security Advisory Mobile Application Assessment Repository
+# MAT
 
 This repository contains all of the scripts and source code for mobile application assessment engagements.
 
-For any queries about the contents of this repository please contact the EMEAR mobile application assessment service owner [Ruben Cadima de Campos](mailto:rcadimad@cisco.com).
+For any queries about the contents of this repository please contact [Security Advisory EMEAR](mailto:css-adv-outreach@cisco.com).
