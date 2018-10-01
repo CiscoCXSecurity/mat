@@ -1,6 +1,6 @@
 FROM ubuntu
 
-MAINTAINER Ruben De Campos <rcadimad@cisco.com>
+MAINTAINER Security Advisory EMEAR <css-adv-outreach@cisco.com>
 
 ############################ PYTHON + JAVA #####################################
 
