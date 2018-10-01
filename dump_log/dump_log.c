@@ -1,3 +1,5 @@
+/* Based on https://projects.nth-dimension.org.uk/projects/ios-application-analyser/repository/show/trunk/src/tools/dump_log */
+
 #include <asl.h>
 #include <string.h>
 #include <stdio.h>
