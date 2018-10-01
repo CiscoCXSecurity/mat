@@ -125,11 +125,11 @@ setup(
         'install': _pre_install,
         'develop': _pre_develop,
     },
-    author='Ruben de Campos',
-    author_email='rdc@65535.com',
+    author='Security Advisory EMEAR',
+    author_email='css-adv-outreach@cisco.com',
     description='Mobile Assessment Tool',
     keywords=['android', 'ios', 'cordova', 'static assessment', 'dynamic assessment', 'mobile assessments', 'apk', 'ipa', 'security'],
     long_description="""
         Tool to perform static and dynamic checks on android and ios applications.
     """
-)
+    )
